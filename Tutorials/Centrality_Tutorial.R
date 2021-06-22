@@ -32,11 +32,11 @@ library(Rcpp)
 library(RcppArmadillo)
 library(RcppParallel)
 
-### Load in the RATE R functions ###
-source("RATE.R")
+### Load in the RATE R functions ### (Path set by user in both)
+source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
-sourceCpp("BAKRGibbs.cpp")
+sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 
 ######################################################################################
 ######################################################################################
@@ -127,7 +127,7 @@ res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
 #The function results in a list with: 
 #(1) The raw Kullback-Leibler divergence measures (RATE$KLD); 
 #(2) The relative centrality measures (RATE$RATE); 
-#(3) The entropic deviance from uniformity (RATE$Detla); and 
+#(3) The entropic deviance from uniformity (RATE$Delta); and 
 #(4) The calibrating approximate effect sample size (ESS) measures from importance sampling (Gruber and West, 2016, 2017)
 
 ### Get the Results ###
