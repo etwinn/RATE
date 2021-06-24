@@ -72,7 +72,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   
   if(length(l)>0){int = int[-l]}
   
-  KLD = foreach(j = int, .combine='c')%dopar%{
+  KLD = foreach(j = int, .combine='c', .export='sherman_r')%dopar%{ #Adding the .export part for windows
     q = unique(c(j,l))
     m = abs(mu[q])
   
