@@ -11,7 +11,6 @@
 #response V(y). This parameter H2 can alternatively be described as a factor controlling the 
 #signal-to-noise ratio. The parameter rho represents the proportion of H2 that is contributed by additive effects versus interaction effects. 
 #Namely, the additive effects make up rho%, while the pairwise interactions (epistatic effects) make up the remaining (1 − rho)%.
-# We are adding a line here on June 23 2021 to see if my git pushes.
 ######################################################################################
 ######################################################################################
 ######################################################################################
