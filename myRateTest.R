@@ -22,7 +22,7 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
+source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
 sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
@@ -95,3 +95,10 @@ sigma2 = 1e-3
 fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
 fhat.rep = rmvnorm(1e4,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
 
+### Compute the KL Divergence to find Marginal Importance ###
+cores = detectCores()
+registerDoParallel(cores=cores)
+
+### Run the RATE Function ###
+nl = NULL
+res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)

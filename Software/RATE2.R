@@ -67,7 +67,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   ### Create Lambda ###
   Lambda = tcrossprod(U)
   
-  ### Compute the Kullback-Leibler divergence (KLD) for Each Predictor ###
+  ### Compute the Kullback-Leibler divergence (KLD) quadratic alternative for Each Predictor ###
   int = 1:length(mu); l = nullify;
   
   if(length(l)>0){int = int[-l]}
@@ -76,10 +76,10 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
     q = unique(c(j,l))
     m = abs(mu[q])
   
-    U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
+    #U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
     #U_Lambda_sub = U_Lambda_sub[-q,-q]
-    alpha = t(U_Lambda_sub[-q,q])%*%U_Lambda_sub[-q,-q]%*%U_Lambda_sub[-q,q]
-    kld = (t(m)%*%alpha%*%m)/2
+    theta = -Lambda[-q,-q]%*%Lambda[-q,q]
+    kld = trace(Lambda[-q,-q]%*%V[-q,-q]) + (beta.draws[q]-m)^2*t(theta)%*%Lambda[-q,-q]%*%theta
     names(kld) = snp.nms[j]
     kld
   }
