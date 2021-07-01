@@ -22,7 +22,7 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
+source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
 sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
@@ -101,4 +101,18 @@ registerDoParallel(cores=cores)
 
 ### Run the RATE Function ###
 nl = NULL
+start = Sys.time()
 res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+end = Sys.time()
+
+print(end-start)
+### Get the Results ###
+rates = res$RATE
+DELTA = res$Delta
+ESS = res$ESS
+
+### Plot the results with the uniformity line ###
+par(mar=c(5,5,4,2))
+barplot(rates,xlab = "Covariates",ylab=expression(RATE(tilde(beta)[j])),names.arg ="",col = ifelse(c(1:p)%in%s,"blue","grey80"),border=NA,cex.names = 0.6,ylim=c(0,0.6),cex.lab=1.25,cex.axis = 1.25)
+lines(x = 0:length(rates)*1.5,y = rep(1/(p-length(nl)),length(rates)+1),col = "red",lty=2,lwd=2)
+legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%"))),bty = "n",pch = 19,cex = 1.25,col = "red")
