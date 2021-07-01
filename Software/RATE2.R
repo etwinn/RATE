@@ -23,6 +23,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   usePackage("MASS")
   usePackage("Matrix")
   usePackage("svd")
+  usePackage("matrixcalc")
   
   ### Determine the number of Cores for Parallelization ###
   if(cores > 1){
@@ -72,14 +73,14 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   
   if(length(l)>0){int = int[-l]}
   
-  KLD = foreach(j = int, .combine='c')%dopar%{ #Adding the [, .export='sherman_r'] part for windows
+  KLD = foreach(j = int, .combine='c', .export = 'hadamard.prod')%dopar%{ #Adding the [, .export='sherman_r'] part for windows
     q = unique(c(j,l))
     m = abs(mu[q])
   
     #U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
     #U_Lambda_sub = U_Lambda_sub[-q,-q]
     theta = -Lambda[-q,-q]%*%Lambda[-q,q]
-    kld = sum(diag((Lambda[-q,-q]%*%V[-q,-q]))) + (beta.draws[q]-m)^2*t(theta)%*%Lambda[-q,-q]%*%theta
+    kld = sum(hadamard.prod(Lambda[-q,-q],V[-q,-q])) + (beta.draws[q]-m)^2*t(theta)%*%Lambda[-q,-q]%*%theta
     names(kld) = snp.nms[j]
     kld
   }

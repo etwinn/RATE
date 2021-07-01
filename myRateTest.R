@@ -22,7 +22,7 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
+source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
 sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
@@ -32,7 +32,7 @@ sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2e3; p = 10; pve=0.6; rho=1;
+n = 2e3; p = 25; pve=0.6; rho=1;
 
 ### Define the Number of Causal SNPs
 ncausal = 3
