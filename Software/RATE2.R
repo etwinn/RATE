@@ -79,8 +79,9 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   
     #U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
     #U_Lambda_sub = U_Lambda_sub[-q,-q]
-    theta = -Lambda[-q,-q]%*%Lambda[-q,q]
-    kld = sum(hadamard.prod(Lambda[-q,-q],V[-q,-q])) + (beta.draws[q]-m)^2*t(theta)%*%Lambda[-q,-q]%*%theta
+    theta = crossprod(-Lambda[-q,-q],Lambda[-q,q])
+    alpha = t(theta)%*%Lambda[-q,-q]%*%theta
+    kld = sum(hadamard.prod(Lambda[-q,-q],V[-q,-q])) + ((beta.draws[q]-m)^2)*alpha
     names(kld) = snp.nms[j]
     kld
   }

@@ -22,7 +22,7 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
+source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
 sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
@@ -104,8 +104,8 @@ nl = NULL
 start = Sys.time()
 res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
 end = Sys.time()
-
 print(end-start)
+
 ### Get the Results ###
 rates = res$RATE
 DELTA = res$Delta

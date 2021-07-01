@@ -78,7 +78,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   
     U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
     #U_Lambda_sub = U_Lambda_sub[-q,-q]
-    alpha = t(U_Lambda_sub[-q,q])%*%U_Lambda_sub[-q,-q]%*%U_Lambda_sub[-q,q]
+    alpha = crossprod(U_Lambda_sub[-q,q],crossprod(U_Lambda_sub[-q,-q],U_Lambda_sub[-q,q]))
     kld = (t(m)%*%alpha%*%m)/2
     names(kld) = snp.nms[j]
     kld
