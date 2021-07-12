@@ -1,9 +1,9 @@
-# myRateTest.R
-# Written by Emily Winn
+# myRateTestWTCCC.R
+#Written by Emily Winn
 # Last updated 6/30/2021
 
-# This file we are going to use to simulate and test the new RATE functions. We will call on 
-# RATE2.R to make these. First I need to simulate data.
+# This file we are going to use to test the new RATE functions on WTccc data. We will call on 
+# RATE2.R to make these. First I need to import data.
 
 ### Clear Console ###
 cat("\014")
@@ -22,37 +22,35 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
+#source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
+source(".\RATE.R")
 
 ### Load in the C++ BAKR functions ###
-sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
+#sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
+source(".\BAKRGibbs.cpp")
 
-# Data simulation - want 10 variables, 3 pairwise interactions. Using Lorin's code from 
-# Centrality_Tutorial.R with some changes to make it our scale. Still going to use Gaussian process.
-### Set the random seed to reproduce research ###
-set.seed(11151990)
+# Importing the data for the WTCCC. It's a matrix called "X.select"
+#load("C:/Users/etwin/Downloads/WTCCC_Sub.Rdata")
+load("WTCCC_Sub.Rdata")
 
-n = 2e3; p = 10; pve=0.6; rho=1;
+n = dim(X.select)[1] #Sample size
+p = dim(X.select)[2] #Number of markers or genes
+pve=0.6; rho=1;
 
-### Define the Number of Causal SNPs
+#Now need to simulate the y vector, which is the same code as before.
+#Number of causal snps
 ncausal = 3
-
-### Simulate Synthetic Data ###
-maf <- 0.05 + 0.45*runif(p)
-X   <- (runif(n*p) < maf) + (runif(n*p) < maf)
-X   <- matrix(as.double(X),n,p,byrow = TRUE)
-Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
-s=c(8:10)
+s=c(1:ncausal)
 
 #Marginal Effects Only
-Xmarginal=X[,s]
+Xmarginal=X.select[,s]
 beta1=rep(1,ncausal)
 y_marginal=c(Xmarginal%*%beta1)
 beta1=beta1*sqrt(pve*rho/var(y_marginal))
 y_marginal=Xmarginal%*%beta1
 
 #Pairwise Epistatic Effects
-Xepi=cbind(X[,s[1]]*X[,s[3]],X[,s[2]]*X[,s[3]])
+Xepi=cbind(X.select[,s[1]]*X.select[,s[3]],X.select[,s[2]]*X.select[,s[3]])
 beta2=c(1,1)
 y_epi=c(Xepi%*%beta2)
 beta2=beta2*sqrt(pve*(1-rho)/var(y_epi))
@@ -63,7 +61,7 @@ y_err=rnorm(n)
 y_err=y_err*sqrt((1-pve)/var(y_err))
 
 y=c(y_marginal+y_epi+y_err); #Full Model
-colnames(X) = paste("SNP",1:ncol(X),sep="")
+colnames(X.select) = paste("SNP",1:ncol(X.select),sep="")
 
 ######################################################################################
 ######################################################################################
@@ -76,10 +74,10 @@ colnames(X) = paste("SNP",1:ncol(X),sep="")
 #(1) The Genotype matrix X. This matrix should be fed in as a pxn matrix. That is, predictor
 #are the rows and subjects/patients/cell lines are the columns.
 #(2) The bandwidth (also known as a smoothing parameter or lengthscale) h. For example, the 
-#Gaussian kernel can be specified as k(u,v) = exp{||u−v||^2/2h^2}.
+#Gaussian kernel can be specified as k(u,v) = exp{||uâv||^2/2h^2}.
 
 ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-Kn = GaussKernel(t(X)); diag(Kn)=1 # 
+Kn = GaussKernel(t(X.select)); diag(Kn)=1 # 
 
 ### Center and Scale K_tilde ###
 v=matrix(1, n, 1)
@@ -99,17 +97,22 @@ registerDoParallel(cores=cores)
 ### Run the RATE Function ###
 nl = NULL
 start = Sys.time()
-res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+res = RATE(X=X.select,f.draws=fhat.rep,snp.nms = colnames(X.select),cores = cores)
 end = Sys.time()
-print(end-start)
+print("Time to calculate one RATE function is ", end-start)
+rate1_time = start-end
 
-### Get the Results ###
-rates = res$RATE
-DELTA = res$Delta
-ESS = res$ESS
+save(res, tile = "rate1_WTCCC.Rdata")
 
-### Plot the results with the uniformity line ###
-par(mar=c(5,5,4,2))
-barplot(rates,xlab = "Covariates",ylab=expression(RATE(tilde(beta)[j])),names.arg ="",col = ifelse(c(1:p)%in%s,"blue","grey80"),border=NA,cex.names = 0.6,ylim=c(0,0.6),cex.lab=1.25,cex.axis = 1.25)
-lines(x = 0:length(rates)*1.5,y = rep(1/(p-length(nl)),length(rates)+1),col = "red",lty=2,lwd=2)
-legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%"))),bty = "n",pch = 19,cex = 1.25,col = "red")
+#Now load next RATE function
+source("RATE2.R")
+### Run the RATE Function ###
+nl = NULL
+start = Sys.time()
+res2 = RATE(X=X.select,f.draws=fhat.rep,snp.nms = colnames(X.select),cores = cores)
+end = Sys.time()
+rate2_time = start-end
+print("Time to calculate one RATE2 function is ", end-start)
+
+save(res2, file =  "rate2_WTCCC.Rdata")
+save.image(file="rate_WTCCC_test.Rdata")
