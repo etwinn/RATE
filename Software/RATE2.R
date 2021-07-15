@@ -19,7 +19,7 @@
 RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){
   
   ### Install the necessary libraries ###
-  usePackage("doParallel")
+  #usePackage("doParallel")
   usePackage("MASS")
   usePackage("Matrix")
   usePackage("svd")
@@ -31,7 +31,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   }
   
   ### Register those Cores ###
-  registerDoParallel(cores=cores)
+  #registerDoParallel(cores=cores)
   
   ### First Run the Matrix Factorizations ###  
   svd_X = propack.svd(X,rank.r); 
@@ -69,11 +69,11 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   Lambda = tcrossprod(U)
   
   ### Compute the Kullback-Leibler divergence (KLD) quadratic alternative for Each Predictor ###
-  int = 1:length(mu); l = nullify;
+  int = 1:length(mu); l = nullify
   
-  if(length(l)>0){int = int[-l]}
-  
-  KLD = foreach(j = int, .combine='c', .export = 'hadamard.prod')%dopar%{ #Adding the [, .export='sherman_r'] part for windows
+ if(length(l)>0){int = int[-l]}
+
+   KLD = foreach(j=int, .combine='c', .export = 'hadamard.prod')%dopar%{
     q = unique(c(j,l))
     m = abs(mu[q])
   
@@ -84,29 +84,8 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
     kld = sum(hadamard.prod(Lambda[-q,-q],V[-q,-q])) + ((beta.draws[q]-m)^2)*alpha
     names(kld) = snp.nms[j]
     kld
-  }
-  # 
-  # if(nrow(X) < ncol(X)){
-  #   KLD = foreach(j = int, .combine='c')%dopar%{
-  #     q = unique(c(j,l))
-  #     m = abs(mu[q])
-  #     
-  #     U_Lambda_sub = qr.solve(U[-q,],Lambda[-q,q,drop=FALSE])
-  #     kld = crossprod(U_Lambda_sub%*%m)/2
-  #     names(kld) = snp.nms[j]
-  #     kld
-  #   }
-  # }else{
-  #   KLD = foreach(j = int, .combine='c')%dopar%{
-  #     q = unique(c(j,l))
-  #     m = mu[q]
-  #     alpha = t(Lambda[-q,q])%*%ginv(as.matrix(nearPD(Lambda[-q,-q])$mat))%*%Lambda[-q,q]
-  #     kld = (t(m)%*%alpha%*%m)/2
-  #     names(kld) = snp.nms[j]
-  #     kld
-  #   }
-  # }
-  # 
+   }
+
   ### Compute the corresponding “RelATive cEntrality” (RATE) measure ###
   RATE = KLD/sum(KLD)
   

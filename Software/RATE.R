@@ -19,7 +19,7 @@
 RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){
   
   ### Install the necessary libraries ###
-  usePackage("doParallel")
+  #usePackage("doParallel")
   usePackage("MASS")
   usePackage("Matrix")
   usePackage("svd")
@@ -30,7 +30,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   }
   
   ### Register those Cores ###
-  registerDoParallel(cores=cores)
+  #registerDoParallel(cores=cores)
   
   ### First Run the Matrix Factorizations ###  
   svd_X = propack.svd(X,rank.r); 
@@ -50,9 +50,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   r = svd_Sigma_star$d > 1e-10
   U = t(ginv(v)) %*% with(svd_Sigma_star, t(1/sqrt(d[r])*t(u[,r])))
   
-  V = v%*%Sigma_star%*%t(v) #Variances
-  
-  mu = v%*%u%*%colMeans(f.draws) #Effect Size Analogues 
+  mu = v%*%u%*%colMeans(f.draws)
   }else{
     beta.draws = t(ginv(X)%*%t(f.draws))
     V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
@@ -68,14 +66,14 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   Lambda = tcrossprod(U)
   
   ### Compute the Kullback-Leibler divergence (KLD) for Each Predictor ###
-  int = 1:length(mu); l = nullify;
+  int = 1:length(mu); l=nullify;
   
   if(length(l)>0){int = int[-l]}
   
   KLD = foreach(j = int, .combine='c', .export='sherman_r')%dopar%{ #Adding the .export part for windows
     q = unique(c(j,l))
     m = abs(mu[q])
-  
+    
     U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
     #U_Lambda_sub = U_Lambda_sub[-q,-q]
     alpha = crossprod(U_Lambda_sub[-q,q],crossprod(U_Lambda_sub[-q,-q],U_Lambda_sub[-q,q]))
@@ -105,6 +103,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   #   }
   # }
   # 
+  
   ### Compute the corresponding “RelATive cEntrality” (RATE) measure ###
   RATE = KLD/sum(KLD)
   
