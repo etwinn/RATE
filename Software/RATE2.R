@@ -16,7 +16,7 @@
 ######################################################################################
 ######################################################################################
 
-RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){
+RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1, kl = "OG", esa = "OG"){
   
   ### Install the necessary libraries ###
   #usePackage("doParallel")
@@ -31,7 +31,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   }
   
   ### Register those Cores ###
-  #registerDoParallel(cores=cores)
+  registerDoParallel(cores=cores)
   
   ### First Run the Matrix Factorizations ###  
   svd_X = propack.svd(X,rank.r); 
@@ -40,6 +40,34 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   r_X = dx&px 
   u = with(svd_X,(1/d[r_X]*t(u[,r_X])))
   v = svd_X$v[,r_X]  
+  
+  ### Calculate g(j) if necessary (note: dopar loop does not work on windows machines):
+  if(esa == "MC"){
+    n = dim(X)[1]
+    p = dim(X)[2]
+    g = foreach(j = 1:p, .combine='c')%dopar%{
+    #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
+    #for(j in 1:p){
+      E_j = matrix(0, nrow=n, ncol=p)
+      E_j[,j] = 1
+      new_X = X + E_j
+      ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
+      Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
+      
+      ### Center and Scale K_tilde ###
+      v=matrix(1, n, 1)
+      M=diag(n)-v%*%t(v)/n
+      Kn_g=M%*%Kn_g%*%M
+      Kn_g=Kn_g/mean(diag(Kn_g))
+      
+      ### Gibbs Sampler ###
+      sigma2 = 1e-3
+      g[,j] = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
+      #g #Don't need to sample, just get the expected value.
+    }
+  }
+  
+  print("Dim g is ", dim(g))
   
   if(low.rank==TRUE){
   # Now, calculate Sigma_star
@@ -54,6 +82,20 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   V = v%*%Sigma_star%*%t(v) #Variances
   
   mu = v%*%u%*%colMeans(f.draws) #Effect Size Analogues 
+  }else if(esa=="MC"){
+    #Beta draws j needs to be the mean of g_j - f.
+    fmean = colMeans(f.draws)
+    beta.draws = foreach(j=1:p)%dopar%{
+      beta.draws = g[,j]-fmean
+      beta.draws
+    }
+    V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
+    D = ginv(V)
+    svd_D = svd(D)
+    r = sum(svd_D$d>1e-10)
+    U = with(svd_D,t(sqrt(d[1:r])*t(u[,1:r])))
+    
+    mu = colMeans(beta.draws)
   }else{
     beta.draws = t(ginv(X)%*%t(f.draws))
     V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
@@ -73,6 +115,19 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   
  if(length(l)>0){int = int[-l]}
 
+ if(kl == "OG"){
+   KLD = foreach(j = int, .combine='c', .export='sherman_r')%dopar%{ #Adding the .export part for windows
+     q = unique(c(j,l))
+     m = abs(mu[q])
+     
+     U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
+     #U_Lambda_sub = U_Lambda_sub[-q,-q]
+     alpha = crossprod(U_Lambda_sub[-q,q],crossprod(U_Lambda_sub[-q,-q],U_Lambda_sub[-q,q]))
+     kld = (t(m)%*%alpha%*%m)/2
+     names(kld) = snp.nms[j]
+     kld
+   } 
+ }else if(kl == "MC"){
    KLD = foreach(j=int, .combine='c', .export = 'hadamard.prod')%dopar%{
     q = unique(c(j,l))
     m = abs(mu[q])
@@ -85,6 +140,10 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
     names(kld) = snp.nms[j]
     kld
    }
+ }else{
+   print('KLD specification not among the options.')
+   KLD = 1
+ }
 
   ### Compute the corresponding “RelATive cEntrality” (RATE) measure ###
   RATE = KLD/sum(KLD)

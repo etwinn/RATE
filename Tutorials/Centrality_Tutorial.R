@@ -32,10 +32,13 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
+source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
 sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
+
+### Set the RATE effect size analogue that we are running (comment out if want default)
+esa = "MC" #(Options: "OG", "MC")
 
 ######################################################################################
 ######################################################################################
@@ -107,6 +110,8 @@ sigma2 = 1e-3
 fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
 fhat.rep = rmvnorm(1e4,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
 
+
+
 ######################################################################################
 ######################################################################################
 ######################################################################################
@@ -117,7 +122,7 @@ registerDoParallel(cores=cores)
 
 ### Run the RATE Function ###
 nl = NULL
-res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores, esa = esa)
 
 #NOTE: We formally define the effect size analogue as the result of projecting the design 
 #matrix X onto the nonlinear response vector f, where beta = Proj(X,f) = X^+f with X^+ 
@@ -130,13 +135,13 @@ res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
 #(4) The calibrating approximate effect sample size (ESS) measures from importance sampling (Gruber and West, 2016, 2017)
 
 ### Get the Results ###
-rates = res$RATE
-DELTA = res$Delta
-ESS = res$ESS
+rates = res_mc$RATE
+DELTA = res_mc$Delta
+ESS = res_mc$ESS
 
 ### Plot the results with the uniformity line ###
 par(mar=c(5,5,4,2))
-barplot(rates,xlab = "Covariates",ylab=expression(RATE(tilde(beta)[j])),names.arg ="",col = ifelse(c(1:p)%in%s,"blue","grey80"),border=NA,cex.names = 0.6,ylim=c(0,0.6),cex.lab=1.25,cex.axis = 1.25)
+barplot(rates,xlab = "Covariates",ylab=expression(RATE(tilde(beta)[j])),names.arg ="",col = ifelse(c(1:p)%in%s,"blue","grey80"),border=NA,cex.names = 0.06,ylim=c(0,0.06),cex.lab=1.25,cex.axis = 1.25)
 lines(x = 0:length(rates)*1.5,y = rep(1/(p-length(nl)),length(rates)+1),col = "red",lty=2,lwd=2)
 legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%"))),bty = "n",pch = 19,cex = 1.25,col = "red")
 
@@ -149,7 +154,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))  
-res2 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res2 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores, esa = esa)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -171,7 +176,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res3 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res3 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores, esa = esa)
 
 ### Get the Results ###
 rates = res3$RATE
@@ -193,7 +198,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res4 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res4 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores, esa = esa)
 
 ### Get the Results ###
 rates = res4$RATE
