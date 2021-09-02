@@ -1,6 +1,6 @@
 # myRateTest.R
 # Written by Emily Winn
-# Last updated 6/30/2021
+# Last updated 9/1/2021
 
 # This file we are going to use to simulate and test the new RATE functions. We will call on 
 # RATE2.R to make these. First I need to simulate data.
@@ -22,7 +22,7 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
+source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
 sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
@@ -32,7 +32,7 @@ sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2e3; p = 10; pve=0.6; rho=1;
+n = 2e3; p = 25; pve=0.6; rho=1;
 
 ### Define the Number of Causal SNPs
 ncausal = 3
@@ -42,7 +42,7 @@ maf <- 0.05 + 0.45*runif(p)
 X   <- (runif(n*p) < maf) + (runif(n*p) < maf)
 X   <- matrix(as.double(X),n,p,byrow = TRUE)
 Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
-s=c(8:10)
+s=c(23:25)
 
 #Marginal Effects Only
 Xmarginal=X[,s]
@@ -97,11 +97,34 @@ cores = detectCores()
 registerDoParallel(cores=cores)
 
 ### Run the RATE Function ###
+rate_choice = "RATE quad"
 nl = NULL
 start = Sys.time()
-res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+res = RATE_quad(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
 end = Sys.time()
 print(end-start)
+
+### Get the Results ###
+rates = res$RATE
+DELTA = res$Delta
+ESS = res$ESS
+
+### Plot the results with the uniformity line ###
+par(mar=c(5,5,4,2))
+barplot(rates,xlab = "Covariates",ylab=expression(RATE(tilde(beta)[j])),names.arg ="",col = ifelse(c(1:p)%in%s,"blue","grey80"),border=NA,cex.names = 0.6,ylim=c(0,0.6),cex.lab=1.25,cex.axis = 1.25)
+lines(x = 0:length(rates)*1.5,y = rep(1/(p-length(nl)),length(rates)+1),col = "red",lty=2,lwd=2)
+legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%")), as.expression(bquote("RATE fn ="~.(rate_choice)))),bty = "n",pch = 19,cex = 1.25,col = "red")
+
+######################################################################################
+######################################################################################
+######################################################################################
+
+### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
+
+### Run the RATE Function ###
+top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
+nl = c(nl,as.numeric(top))  
+res2 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -110,6 +133,50 @@ ESS = res2$ESS
 
 ### Plot the results with the uniformity line ###
 par(mar=c(5,5,4,2))
-barplot(rates,xlab = "Covariates",ylab=expression(RATE(tilde(beta)[j])),names.arg ="",col = ifelse(c(1:p)%in%s,"blue","grey80"),border=NA,cex.names = 0.005,ylim=c(0,0.005),cex.lab=1.25,cex.axis = 1.25)
+barplot(rates,xlab = "Covariates",ylab=bquote(RATE(tilde(beta)[j]~"|"~tilde(beta)[.(as.integer(nl))]=="0")),names.arg = "",col = ifelse(c(1:p)[-nl]%in%s,"blue","grey80"),border=NA,cex.names = 0.6,ylim=c(0,0.6),cex.lab=1.25,cex.axis = 1.25)
 lines(x = 0:length(rates)*1.5,y = rep(1/(p-length(nl)),length(rates)+1),col = "red",lty=2,lwd=2)
-legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%"))),bty = "n",pch = 19,cex = 1.25,col = "red")
+legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%")), as.expression(bquote("RATE fn ="~.(rate_choice)))),bty = "n",pch = 19,cex = 1.25,col = "red")
+
+######################################################################################
+######################################################################################
+######################################################################################
+
+### Find Third Order Centrality by Nullifying the Top 2 Associated Predictor Variables ###
+
+### Run the RATE Function ###
+top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
+nl = c(nl,as.numeric(top))
+res3 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+
+### Get the Results ###
+rates = res3$RATE
+DELTA = res3$Delta
+ESS = res3$ESS
+
+### Plot the results with the uniformity line ###
+par(mar=c(5,5,4,2))
+barplot(rates,xlab = "Covariates",ylab=bquote(RATE(tilde(beta)[j]~"|"~tilde(beta)[.(as.integer(nl[1]))]==~tilde(beta)[.(as.integer(nl[2]))]=="0")),names.arg = "",col = ifelse(c(1:p)[-nl]%in%s,"blue","grey80"),border=NA,cex.names = 0.6,ylim=c(0,0.6),cex.lab=1.25,cex.axis = 1.25)
+lines(x = 0:length(rates)*1.5,y = rep(1/(p-length(nl)),length(rates)+1),col = "red",lty=2,lwd=2)
+legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%")),as.expression(bquote("RATE fn ="~.(rate_choice)))),bty = "n",pch = 19,cex = 1.25,col = "red")
+
+######################################################################################
+######################################################################################
+######################################################################################
+
+### Find Fourth Order Centrality by Nullifying the Top 3 Associated Predictor Variables ###
+
+### Run the RATE Function ###
+top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
+nl = c(nl,as.numeric(top))
+res4 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+
+### Get the Results ###
+rates = res4$RATE
+DELTA = res4$Delta
+ESS = res4$ESS
+
+### Plot the results with the uniformity line ###
+par(mar=c(5,5,4,2))
+barplot(rates,xlab = "Covariates",ylab=bquote(RATE(tilde(beta)[j]~"|"~tilde(beta)[.(as.integer(nl[1]))]==~tilde(beta)[.(as.integer(nl[2]))]==~tilde(beta)[.(as.integer(nl[3]))]=="0")),names.arg = "",col = ifelse(c(1:p)[-nl]%in%s,"blue","grey80"),border=NA,cex.names = 0.6,ylim=c(0,0.6),cex.lab=1.25,cex.axis = 1.25)
+lines(x = 0:length(rates)*1.5,y = rep(1/(p-length(nl)),length(rates)+1),col = "red",lty=2,lwd=2)
+legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.expression(bquote("ESS ="~.(round(ESS,2))*"%")),as.expression(bquote("RATE fn ="~.(rate_choice)))),bty = "n",pch = 19,cex = 1.25,col = "red")

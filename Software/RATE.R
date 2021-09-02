@@ -19,7 +19,7 @@
 RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){
   
   ### Install the necessary libraries ###
-  #usePackage("doParallel")
+  usePackage("doParallel")
   usePackage("MASS")
   usePackage("Matrix")
   usePackage("svd")
