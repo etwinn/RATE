@@ -366,8 +366,8 @@ RATE_quad <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, r
     
     mu = v%*%u%*%colMeans(f.draws)
   }else{
-    Z = X*X
-    beta.draws = t(apply(f.draws, 1, function (y) ginv(Z)%*%(diag(n)-ginv(X))%*%y))
+    q = ginv(X*X)%*%(diag(dim(X)[1])-(X%*%ginv(X)))
+    beta.draws = t(matrix(unlist(apply(fhat.rep, 1, function(y) q%*%y)), ncol=dim(X)[2], byrow=TRUE))
     V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
     D = ginv(V)
     svd_D = svd(D)

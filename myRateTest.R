@@ -32,7 +32,7 @@ sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2e3; p = 25; pve=0.6; rho=1;
+n = 2e3; p = 25; pve=0.6; rho=0;
 
 ### Define the Number of Causal SNPs
 ncausal = 3
@@ -62,7 +62,7 @@ y_epi=Xepi%*%beta2
 y_err=rnorm(n)
 y_err=y_err*sqrt((1-pve)/var(y_err))
 
-y=c(y_marginal+y_epi+y_err); #Full Model
+y=c(y_marginal+y_epi+y_err); #Full Model 
 colnames(X) = paste("SNP",1:ncol(X),sep="")
 
 ######################################################################################
@@ -97,7 +97,7 @@ cores = detectCores()
 registerDoParallel(cores=cores)
 
 ### Run the RATE Function ###
-rate_choice = "RATE quad"
+rate_choice = "RATE Quad"
 nl = NULL
 start = Sys.time()
 res = RATE_quad(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
