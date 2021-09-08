@@ -117,7 +117,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS))
 }
 
-RATE_MC = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1, kl = "OG"){
+RATE_MC = function(X = X, f.draws = f.draws, g.draws = g.draws, prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1, kl = "OG"){
   
   ### Install the necessary libraries ###
   #usePackage("doParallel")
@@ -142,32 +142,6 @@ RATE_MC = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank
   u = with(svd_X,(1/d[r_X]*t(u[,r_X])))
   v = svd_X$v[,r_X]  
   
-  ### Calculate g(j) if necessary (note: dopar loop does not work on windows machines):
-    n = dim(X)[1]
-    p = dim(X)[2]
-    g = foreach(j = 1:p, .combine='c')%dopar%{
-    #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
-    #for(j in 1:p){
-    E_j = matrix(0, nrow=n, ncol=p)
-    E_j[,j] = 1
-    new_X = X + E_j
-    ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-    Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
-      
-    ### Center and Scale K_tilde ###
-    v=matrix(1, n, 1)
-    M=diag(n)-v%*%t(v)/n
-    Kn_g=M%*%Kn_g%*%M
-    Kn_g=Kn_g/mean(diag(Kn_g))
-    }
-      
-  ### Gibbs Sampler ###
-  sigma2 = 1e-3
-  g[,j] = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
-  #g #Don't need to sample, just get the expected value.
-  
-  print("Dim g is ", dim(g))
-  
   if(low.rank==TRUE){
     # Now, calculate Sigma_star
     SigmaFhat = cov(f.draws)
@@ -182,12 +156,8 @@ RATE_MC = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank
     
     mu = v%*%u%*%colMeans(f.draws) #Effect Size Analogues 
   }else{
-    #Beta draws j needs to be the mean of g_j - f.
-    fmean = colMeans(f.draws)
-    beta.draws = foreach(j=1:p)%dopar%{
-      beta.draws = g[,j]-fmean
-      beta.draws
-    }
+    #Beta draws j needs to be the mean of g_j - f. (average out before sending through)
+    beta.draws = g.draws - f.draws 
     V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
     D = ginv(V)
     svd_D = svd(D)
@@ -367,7 +337,7 @@ RATE_quad <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, r
     mu = v%*%u%*%colMeans(f.draws)
   }else{
     q = ginv(X*X)%*%(diag(dim(X)[1])-(X%*%ginv(X)))
-    beta.draws = t(matrix(unlist(apply(fhat.rep, 1, function(y) q%*%y)), ncol=dim(X)[2], byrow=TRUE))
+    beta.draws = matrix(unlist(apply(fhat.rep, 1, function(y) q%*%y)), ncol=dim(X)[2], byrow=TRUE)
     V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
     D = ginv(V)
     svd_D = svd(D)

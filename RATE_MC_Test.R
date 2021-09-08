@@ -1,9 +1,8 @@
-# myRateTest.R
-# Written by Emily Winn
-# Last updated 9/1/2021
+# RATE_MC_Test.R
+# Same as the tutorial but with added sampling to get the g value as needed for
+# running MaryClare's suggestion for RATE.
+# September 7, 2021
 
-# This file we are going to use to simulate and test the new RATE functions. We will call on 
-# RATE2.R to make these. First I need to simulate data.
 
 ### Clear Console ###
 cat("\014")
@@ -32,7 +31,7 @@ sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2e3; p = 25; pve=0.1; rho=0.5; #rho=0 makes all epistatic, 1 is all marginal
+n = 2e3; p = 25; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
 
 ### Define the Number of Causal SNPs
 ncausal = 3
@@ -76,7 +75,7 @@ colnames(X) = paste("SNP",1:ncol(X),sep="")
 #(1) The Genotype matrix X. This matrix should be fed in as a pxn matrix. That is, predictor
 #are the rows and subjects/patients/cell lines are the columns.
 #(2) The bandwidth (also known as a smoothing parameter or lengthscale) h. For example, the 
-#Gaussian kernel can be specified as k(u,v) = exp{||u−v||^2/2h^2}.
+#Gaussian kernel can be specified as k(u,v) = exp{||uâv||^2/2h^2}.
 
 ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
 Kn = GaussKernel(t(X)); diag(Kn)=1 # 
@@ -92,15 +91,40 @@ sigma2 = 1e-3
 fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
 fhat.rep = rmvnorm(1e4,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
 
-### Compute the KL Divergence to find Marginal Importance ###
-#cores = detectCores()
-#registerDoParallel(cores=cores)
+### Find basis and kernel matrix, center and scale, Gibbs Sampler for g ###
+cores = detectCores()
+registerDoParallel(cores=cores)
+
+#Calculate Delta (add dopar instead of do once off windows)
+#Need to figure out list for this.
+G = foreach(j = 1:p, .combine='rbind')%do%{
+  #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
+  #for(j in 1:p)
+  ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
+  new_X = X+cbind(matrix(0,n,j-1),matrix(1,n,1),matrix(0,n,p-j))
+  Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
+  
+  ### Center and Scale K_tilde ###
+  v=matrix(1, n, 1)
+  M=diag(n)-v%*%t(v)/n
+  Kn_g=M%*%Kn_g%*%M
+  Kn_g=Kn_g/mean(diag(Kn_g))
+  #g #Don't need to sample, just get the expected value.
+  g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
+  #g.rep is a 10000 by 2000 matrix
+  g.rep = rmvnorm(1e4,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
+  g.rep
+}
+
+#Now have a p*1e4 by n matrix. Need to average out to a 1e4*n matrix
+#Reshape G (may need to change once run with rbind, this works with c)
+G <- array(G, c(10000,2000,25))
 
 ### Run the RATE Function ###
-rate_choice = "RATE quad"
+rate_choice = "RATE MC"
 nl = NULL
 #start = Sys.time()
-res = RATE_quad(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+res = RATE_MC(X=X,f.draws=fhat.rep, g.draws = G,snp.nms = colnames(X),cores = cores)
 #end = Sys.time()
 #print(end-start)
 
@@ -124,7 +148,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))  
-res2 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res2 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -146,7 +170,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res3 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res3 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res3$RATE
@@ -168,7 +192,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res4 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res4 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res4$RATE
