@@ -97,7 +97,7 @@ registerDoParallel(cores=cores)
 
 #Calculate Delta (add dopar instead of do once off windows)
 #Need to figure out list for this.
-G = foreach(j = 1:p, .combine='rbind')%do%{
+delta = foreach(j = 1:p, .combine='rbind')%do%{
   #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
   #for(j in 1:p)
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
@@ -113,18 +113,18 @@ G = foreach(j = 1:p, .combine='rbind')%do%{
   g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
   #g.rep is a 10000 by 2000 matrix
   g.rep = rmvnorm(1e4,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
-  g.rep
+  delta.rep = rowMeans(g.rep-fhat.rep)
 }
 
 #Now have a p*1e4 by n matrix. Need to average out to a 1e4*n matrix
 #Reshape G (may need to change once run with rbind, this works with c)
-G <- array(G, c(10000,2000,25))
+#G <- array(G, c(10000,2000,25))
 
 ### Run the RATE Function ###
 rate_choice = "RATE MC"
 nl = NULL
 #start = Sys.time()
-res = RATE_MC(X=X,f.draws=fhat.rep, g.draws = G,snp.nms = colnames(X),cores = cores)
+res = RATE(X=X,f.draws=delta, snp.nms = colnames(X),cores = cores)
 #end = Sys.time()
 #print(end-start)
 
@@ -148,7 +148,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))  
-res2 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res2 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -170,7 +170,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res3 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res3 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res3$RATE
@@ -192,7 +192,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res4 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res4 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res4$RATE
