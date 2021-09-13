@@ -33,6 +33,8 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   ### Register those Cores ###
   registerDoParallel(cores=cores)
   
+  #Begin timing
+  start = Sys.time()
   ### First Run the Matrix Factorizations ###  
   svd_X = propack.svd(X,rank.r); 
   dx = svd_X$d > 1e-10
@@ -113,110 +115,10 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   #(Gruber and West, 2016, 2017)
   ESS = 1/(1+Delta)*100
   
-  ### Return a list of the values and results ###
-  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS))
-}
-
-RATE_MC = function(X = X, f.draws = f.draws, g.draws = g.draws, prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1, kl = "OG"){
-  
-  ### Install the necessary libraries ###
-  #usePackage("doParallel")
-  usePackage("MASS")
-  usePackage("Matrix")
-  usePackage("svd")
-  usePackage("matrixcalc")
-  
-  ### Determine the number of Cores for Parallelization ###
-  if(cores > 1){
-    if(cores>detectCores()){warning("The number of cores you're setting is larger than detected cores!");cores = detectCores()}
-  }
-  
-  ### Register those Cores ###
-  registerDoParallel(cores=cores)
-  
-  ### First Run the Matrix Factorizations ###  
-  svd_X = propack.svd(X,rank.r); 
-  dx = svd_X$d > 1e-10
-  px = cumsum(svd_X$d^2/sum(svd_X$d^2)) < prop.var
-  r_X = dx&px 
-  u = with(svd_X,(1/d[r_X]*t(u[,r_X])))
-  v = svd_X$v[,r_X]  
-  
-  if(low.rank==TRUE){
-    # Now, calculate Sigma_star
-    SigmaFhat = cov(f.draws)
-    Sigma_star = u %*% SigmaFhat %*% t(u)
-    
-    # Now, calculate U st Lambda = U %*% t(U)
-    svd_Sigma_star = propack.svd(Sigma_star,rank.r)
-    r = svd_Sigma_star$d > 1e-10
-    U = t(ginv(v)) %*% with(svd_Sigma_star, t(1/sqrt(d[r])*t(u[,r])))
-    
-    V = v%*%Sigma_star%*%t(v) #Variances
-    
-    mu = v%*%u%*%colMeans(f.draws) #Effect Size Analogues 
-  }else{
-    #Beta draws j needs to be the mean of g_j - f. (average out before sending through)
-    beta.draws = g.draws - f.draws 
-    V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
-    D = ginv(V)
-    svd_D = svd(D)
-    r = sum(svd_D$d>1e-10)
-    U = with(svd_D,t(sqrt(d[1:r])*t(u[,1:r])))
-    
-    mu = colMeans(beta.draws)
-  }
-  
-  ### Create Lambda ###
-  Lambda = tcrossprod(U)
-  
-  ### Compute the Kullback-Leibler divergence (KLD) quadratic alternative for Each Predictor ###
-  int = 1:length(mu); l = nullify
-  
-  if(length(l)>0){int = int[-l]}
-  
-  if(kl == "OG"){
-    KLD = foreach(j = int, .combine='c', .export='sherman_r')%dopar%{ #Adding the .export part for windows
-      q = unique(c(j,l))
-      m = abs(mu[q])
-      
-      U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
-      #U_Lambda_sub = U_Lambda_sub[-q,-q]
-      alpha = crossprod(U_Lambda_sub[-q,q],crossprod(U_Lambda_sub[-q,-q],U_Lambda_sub[-q,q]))
-      kld = (t(m)%*%alpha%*%m)/2
-      names(kld) = snp.nms[j]
-      kld
-    } 
-  }else if(kl == "MC"){
-    KLD = foreach(j=int, .combine='c', .export = 'hadamard.prod')%dopar%{
-      q = unique(c(j,l))
-      m = abs(mu[q])
-      
-      #U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
-      #U_Lambda_sub = U_Lambda_sub[-q,-q]
-      theta = crossprod(-Lambda[-q,-q],Lambda[-q,q])
-      alpha = t(theta)%*%Lambda[-q,-q]%*%theta
-      kld = sum(hadamard.prod(Lambda[-q,-q],V[-q,-q])) + ((beta.draws[q]-m)^2)*alpha
-      names(kld) = snp.nms[j]
-      kld
-    }
-  }else{
-    print('KLD specification not among the options.')
-    KLD = 1
-  }
-  
-  ### Compute the corresponding “RelATive cEntrality” (RATE) measure ###
-  RATE = KLD/sum(KLD)
-  
-  ### Find the entropic deviation from a uniform distribution ###
-  Delta = sum(RATE*log((length(mu)-length(nullify))*RATE))
-  
-  ### Calibrate Delta via the effective sample size (ESS) measures from importance sampling ###
-  #(Gruber and West, 2016, 2017)
-  ESS = 1/(1+Delta)*100
+  end=Sys.time()
   
   ### Return a list of the values and results ###
-  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS))
+  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS, "EffectSizes" = mu, "Time" = end-start))
 }
 
 
@@ -234,7 +136,8 @@ RATE_lin <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, ra
   }
   
   ### Register those Cores ###
-  #registerDoParallel(cores=cores)
+  registerDoParallel(cores=cores)
+  start=Sys.time()
   
   ### First Run the Matrix Factorizations ###  
   svd_X = propack.svd(X,rank.r); 
@@ -296,11 +199,13 @@ RATE_lin <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, ra
   #(Gruber and West, 2016, 2017)
   ESS = 1/(1+Delta)*100
   
+  end=Sys.time()
+  
   ### Return a list of the values and results ###
-  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS))
+  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS, "EffectSizes" = mu, "Time" = end-start))
 }
 
-#Calculate the Beta's using just the quadratic model coefficients (super naive way)
+#Calculate the Beta's using just the quadratic model coefficients, taking out linear (super naive way)
 RATE_quad <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){
   ### Install the necessary libraries ###
   usePackage("doParallel")
@@ -314,7 +219,9 @@ RATE_quad <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, r
   }
   
   ### Register those Cores ###
-  #registerDoParallel(cores=cores)
+  registerDoParallel(cores=cores)
+  
+  start = Sys.time()
   
   ### First Run the Matrix Factorizations ###  
   svd_X = propack.svd(X,rank.r); 
@@ -377,8 +284,180 @@ RATE_quad <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, r
   #(Gruber and West, 2016, 2017)
   ESS = 1/(1+Delta)*100
   
+  end = Sys.time()
+  
   ### Return a list of the values and results ###
-  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS))
+  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS, "EffectSizes" = mu, "Time" = end-start))
+}
+
+#Calculate the Beta's using just the quadratic model coefficients, not removing linear effects (super naive way)
+RATE_quad2 <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){
+  ### Install the necessary libraries ###
+  usePackage("doParallel")
+  usePackage("MASS")
+  usePackage("Matrix")
+  usePackage("svd")
+  
+  ### Determine the number of Cores for Parallelization ###
+  if(cores > 1){
+    if(cores>detectCores()){warning("The number of cores you're setting is larger than detected cores!");cores = detectCores()}
+  }
+  
+  ### Register those Cores ###
+  registerDoParallel(cores=cores)
+  
+  start = Sys.time()
+  
+  ### First Run the Matrix Factorizations ###  
+  svd_X = propack.svd(X,rank.r); 
+  dx = svd_X$d > 1e-10
+  px = cumsum(svd_X$d^2/sum(svd_X$d^2)) < prop.var
+  r_X = dx&px 
+  u = with(svd_X,(1/d[r_X]*t(u[,r_X])))
+  v = svd_X$v[,r_X]  
+  
+  if(low.rank==TRUE){
+    # Now, calculate Sigma_star
+    SigmaFhat = cov(f.draws)
+    Sigma_star = u %*% SigmaFhat %*% t(u)
+    
+    # Now, calculate U st Lambda = U %*% t(U)
+    svd_Sigma_star = propack.svd(Sigma_star,rank.r)
+    r = svd_Sigma_star$d > 1e-10
+    U = t(ginv(v)) %*% with(svd_Sigma_star, t(1/sqrt(d[r])*t(u[,r])))
+    
+    mu = v%*%u%*%colMeans(f.draws)
+  }else{
+    beta.draws = t(ginv(X*X)%*%t(f.draws))
+    V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
+    D = ginv(V)
+    svd_D = svd(D)
+    r = sum(svd_D$d>1e-10)
+    U = with(svd_D,t(sqrt(d[1:r])*t(u[,1:r])))
+    
+    mu = colMeans(beta.draws)
+  }
+  
+  ### Create Lambda ###
+  Lambda = tcrossprod(U)
+  
+  ### Compute the Kullback-Leibler divergence (KLD) for Each Predictor ###
+  int = 1:length(mu); l=nullify;
+  
+  if(length(l)>0){int = int[-l]}
+  
+  KLD = foreach(j = int, .combine='c', .export='sherman_r')%dopar%{ #Adding the .export part for windows
+    q = unique(c(j,l))
+    m = abs(mu[q])
+    
+    U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
+    #U_Lambda_sub = U_Lambda_sub[-q,-q]
+    alpha = crossprod(U_Lambda_sub[-q,q],crossprod(U_Lambda_sub[-q,-q],U_Lambda_sub[-q,q]))
+    kld = (t(m)%*%alpha%*%m)/2
+    names(kld) = snp.nms[j]
+    kld
+  }
+  
+  ### Compute the corresponding “RelATive cEntrality” (RATE) measure ###
+  RATE = KLD/sum(KLD)
+  
+  ### Find the entropic deviation from a uniform distribution ###
+  Delta = sum(RATE*log((length(mu)-length(nullify))*RATE))
+  
+  ### Calibrate Delta via the effective sample size (ESS) measures from importance sampling ###
+  #(Gruber and West, 2016, 2017)
+  ESS = 1/(1+Delta)*100
+  
+  end = Sys.time()
+  
+  ### Return a list of the values and results ###
+  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS, "EffectSizes" = mu, "Time" = end-start))
+}
+
+#Calculate the Beta's using linear and quad coefficents
+RATE_combo <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){
+  ### Install the necessary libraries ###
+  usePackage("doParallel")
+  usePackage("MASS")
+  usePackage("Matrix")
+  usePackage("svd")
+  
+  ### Determine the number of Cores for Parallelization ###
+  if(cores > 1){
+    if(cores>detectCores()){warning("The number of cores you're setting is larger than detected cores!");cores = detectCores()}
+  }
+  
+  ### Register those Cores ###
+  registerDoParallel(cores=cores)
+  
+  start = Sys.time()
+  
+  ### First Run the Matrix Factorizations ###  
+  svd_X = propack.svd(X,rank.r); 
+  dx = svd_X$d > 1e-10
+  px = cumsum(svd_X$d^2/sum(svd_X$d^2)) < prop.var
+  r_X = dx&px 
+  u = with(svd_X,(1/d[r_X]*t(u[,r_X])))
+  v = svd_X$v[,r_X]  
+  
+  if(low.rank==TRUE){
+    # Now, calculate Sigma_star
+    SigmaFhat = cov(f.draws)
+    Sigma_star = u %*% SigmaFhat %*% t(u)
+    
+    # Now, calculate U st Lambda = U %*% t(U)
+    svd_Sigma_star = propack.svd(Sigma_star,rank.r)
+    r = svd_Sigma_star$d > 1e-10
+    U = t(ginv(v)) %*% with(svd_Sigma_star, t(1/sqrt(d[r])*t(u[,r])))
+    
+    mu = v%*%u%*%colMeans(f.draws)
+  }else{
+    q = ginv(X*X)%*%(diag(dim(X)[1])-(X%*%ginv(X)))
+    beta.draws = matrix(unlist(apply(fhat.rep, 1, function(y) q%*%y)), ncol=dim(X)[2], byrow=TRUE) + t(ginv(X)%*%t(f.draws))
+    #beta.draws = t(ginv(X*X)%*%t(f.draws)) 
+    V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
+    D = ginv(V)
+    svd_D = svd(D)
+    r = sum(svd_D$d>1e-10)
+    U = with(svd_D,t(sqrt(d[1:r])*t(u[,1:r])))
+    
+    mu = colMeans(beta.draws)
+  }
+  
+  ### Create Lambda ###
+  Lambda = tcrossprod(U)
+  
+  ### Compute the Kullback-Leibler divergence (KLD) for Each Predictor ###
+  int = 1:length(mu); l=nullify;
+  
+  if(length(l)>0){int = int[-l]}
+  
+  KLD = foreach(j = int, .combine='c', .export='sherman_r')%dopar%{ #Adding the .export part for windows
+    q = unique(c(j,l))
+    m = abs(mu[q])
+    
+    U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
+    #U_Lambda_sub = U_Lambda_sub[-q,-q]
+    alpha = crossprod(U_Lambda_sub[-q,q],crossprod(U_Lambda_sub[-q,-q],U_Lambda_sub[-q,q]))
+    kld = (t(m)%*%alpha%*%m)/2
+    names(kld) = snp.nms[j]
+    kld
+  }
+  
+  ### Compute the corresponding “RelATive cEntrality” (RATE) measure ###
+  RATE = KLD/sum(KLD)
+  
+  ### Find the entropic deviation from a uniform distribution ###
+  Delta = sum(RATE*log((length(mu)-length(nullify))*RATE))
+  
+  ### Calibrate Delta via the effective sample size (ESS) measures from importance sampling ###
+  #(Gruber and West, 2016, 2017)
+  ESS = 1/(1+Delta)*100
+  
+  end = Sys.time()
+  
+  ### Return a list of the values and results ###
+  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS, "EffectSizes" = mu, "Time" = end-start))
 }
 
 sherman_r <- function(Ap, u, v) {

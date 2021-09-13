@@ -31,7 +31,7 @@ sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2e3; p = 25; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
+n = 2000; p = 25; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
 
 ### Define the Number of Causal SNPs
 ncausal = 3
@@ -41,7 +41,7 @@ maf <- 0.05 + 0.45*runif(p)
 X   <- (runif(n*p) < maf) + (runif(n*p) < maf)
 X   <- matrix(as.double(X),n,p,byrow = TRUE)
 Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
-s=c(23:25)
+s=c(8:10)
 
 #Marginal Effects Only
 Xmarginal=X[,s]
@@ -87,17 +87,21 @@ M=diag(n)-v%*%t(v)/n
 Kn=Kn/mean(diag(Kn))
 
 ### Gibbs Sampler ###
+sample_size=1e4
 sigma2 = 1e-3
 fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
-fhat.rep = rmvnorm(1e4,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
+fhat.rep = rmvnorm(sample_size,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
 
 ### Find basis and kernel matrix, center and scale, Gibbs Sampler for g ###
 cores = detectCores()
 registerDoParallel(cores=cores)
 
-#Calculate Delta (add dopar instead of do once off windows)
+#Calculate Delta, which ends up being p x sample_size matrix (add dopar instead of do once off windows)
+# f is sample_size x n matrix.... how solve this...
 #Need to figure out list for this.
-delta = foreach(j = 1:p, .combine='rbind')%do%{
+
+delta.all = list()
+foreach(j = 1:p, .combine='rbind')%dopar%{
   #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
   #for(j in 1:p)
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
@@ -112,19 +116,19 @@ delta = foreach(j = 1:p, .combine='rbind')%do%{
   #g #Don't need to sample, just get the expected value.
   g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
   #g.rep is a 10000 by 2000 matrix
-  g.rep = rmvnorm(1e4,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
-  delta.rep = rowMeans(g.rep-fhat.rep)
+  g.rep = rmvnorm(sample_size,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
+  delta.all[[j]] = g.rep-fhat.rep
 }
 
-#Now have a p*1e4 by n matrix. Need to average out to a 1e4*n matrix
-#Reshape G (may need to change once run with rbind, this works with c)
-#G <- array(G, c(10000,2000,25))
+#Take average matrix, gives sample_size by n matrix as needed.
+delta.rep = rowMeans(simplify2array(delta.all),dims=2)
+#rm(delta.all) #Open up memory, no longer need.
 
 ### Run the RATE Function ###
 rate_choice = "RATE MC"
 nl = NULL
 #start = Sys.time()
-res = RATE(X=X,f.draws=delta, snp.nms = colnames(X),cores = cores)
+res = RATE(X=X,f.draws=delta.rep, snp.nms = colnames(X),cores = cores)
 #end = Sys.time()
 #print(end-start)
 
@@ -148,7 +152,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))  
-res2 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
+res2 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -170,7 +174,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res3 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
+res3 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res3$RATE
@@ -192,7 +196,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res4 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
+res4 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res4$RATE

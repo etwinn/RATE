@@ -93,14 +93,14 @@ fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
 fhat.rep = rmvnorm(1e4,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
 
 ### Compute the KL Divergence to find Marginal Importance ###
-#cores = detectCores()
-#registerDoParallel(cores=cores)
+cores = detectCores()
+registerDoParallel(cores=cores)
 
 ### Run the RATE Function ###
-rate_choice = "RATE quad"
+rate_choice = "RATE"
 nl = NULL
 #start = Sys.time()
-res = RATE_quad(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
 #end = Sys.time()
 #print(end-start)
 
@@ -124,7 +124,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))  
-res2 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res2 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -146,7 +146,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res3 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res3 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res3$RATE
@@ -168,7 +168,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res4 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res4 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res4$RATE
