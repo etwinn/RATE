@@ -17,10 +17,12 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE.R") #Changing path for etwin PC.
+#source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
+source("RATE2.R")
 
 ### Load in the C++ BAKR functions ###
-sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
+#sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
+sourceCpp("BAKRGibbs.cpp")
 
 #Register cores
 cores = detectCores()
@@ -37,7 +39,9 @@ z=10
 # Also need to append the data for each round (n, p, pve, rho, X, seed?)
 RATE_MA_same = list()
 
-foreach (k = 1:z) %dopar%{
+#Want to parallelize, but may just not because it's giving linux a hard time
+# foreach (k = 1:z) %dopar% {
+for (k in 1:z) {
   RATES = list()
   ### Set the random seed to reproduce research ###
   set.seed(11151990)
@@ -102,8 +106,9 @@ foreach (k = 1:z) %dopar%{
   
   ### Gibbs Sampler ###
   sigma2 = 1e-3
+  sample_size = 1e4
   fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
-  fhat.rep = rmvnorm(1e4,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
+  fhat.rep = rmvnorm(sample_size,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
   
   
   #######################
@@ -232,10 +237,10 @@ foreach (k = 1:z) %dopar%{
   ##############################################
   ### Run the RATE_MC Function ###
   ##############################################
-  
-  
-  delta.all = list()
-  foreach(j = 1:p, .combine='rbind')%dopar%{
+  start = Sys.time()
+  delta.all = vector(mode="list", length=p)
+  #foreach(j = 1:p, combine = 'rbind')%dopar%{
+  for (j in 1:p){
     #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
     #for(j in 1:p)
     ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
@@ -257,9 +262,11 @@ foreach (k = 1:z) %dopar%{
   #Take average matrix, gives sample_size by n matrix as needed.
   delta.rep = rowMeans(simplify2array(delta.all),dims=2)
   rm(delta.all)
+  end = Sys.time()
   
   nl = NULL
   res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+  res$Time = res$Time+(end-start)
   
   ### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
   
@@ -285,10 +292,11 @@ foreach (k = 1:z) %dopar%{
   RATES = append(RATES, list("RATE_MC" = list("run1" = res, "run2"=res2, "run3"=res3, "run4"= res4)))
   
   ##### SAVE ALL VARIABLES AND THE DATA ###
-  RATE_MA_same = append(RATE_MA_same, list(paste0("data",k) = list("X"=X, "n"=n, "p"=p, "rho"= rho, "pve"=pve)))
-  RATE_MA_same = append(RATE_MA_same, list(paste0("RATES",k) = RATES))
+  data = list("X"=X, "n"=n, "p"=p, "rho"= rho, "pve"=pve)
+  RATE_MA_same = append(RATE_MA_same, list("data" = data, "RATES" = RATES))
+  assign(paste0("Trial_",k), RATE_MA_same[[k]])
 }
 
 ##Export all saved variables
 
-save(RATE_MA_same, file="")
+save(RATE_MA_same, file="/users/ewinn/scratch/data/RATE_MA_same.Rdata")
