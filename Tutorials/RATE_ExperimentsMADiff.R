@@ -37,7 +37,7 @@ z=10
 # Then need 4 rounds each. So let's make a list of each run, each run has
 # each function, function, each function has a list of values from each iteration of RATE, which is a list
 # Also need to append the data for each round (n, p, pve, rho, X, seed?)
-RATE_MA_same = list()
+RATE_MA_diff = list()
 
 #Want to parallelize, but may just not because it's giving linux a hard time
 # foreach (k = 1:z) %dopar% {
@@ -57,6 +57,7 @@ for (k in 1:z) {
   X   <- matrix(as.double(X),n,p,byrow = TRUE)
   Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
   s=c(23:25)
+  r=c(8:10)
   
   #Marginal Effects Only
   Xmarginal=X[,s]
@@ -66,7 +67,7 @@ for (k in 1:z) {
   y_marginal=Xmarginal%*%beta1
   
   #Pairwise Epistatic Effects
-  Xepi=cbind(X[,s[1]]*X[,s[3]],X[,s[2]]*X[,s[3]])
+  Xepi=cbind(X[,r[1]]*X[,r[3]],X[,r[2]]*X[,r[3]])
   beta2=c(1,1)
   y_epi=c(Xepi%*%beta2)
   beta2=beta2*sqrt(pve*(1-rho)/var(y_epi))
@@ -293,10 +294,10 @@ for (k in 1:z) {
   
   ##### SAVE ALL VARIABLES AND THE DATA ###
   data = list("X"=X, "n"=n, "p"=p, "rho"= rho, "pve"=pve)
-  RATE_MA_same = append(RATE_MA_same, list("data" = data, "RATES" = RATES))
-  assign(paste0("Trial_",k), RATE_MA_same[[k]])
+  RATE_MA_diff = append(RATE_MA_diff, list("data" = data, "RATES" = RATES))
+  assign(paste0("Trial_",k), RATE_MA_diff[[k]])
 }
 
 ##Export all saved variables
 
-save(RATE_MA_same, file="~/scratch/data/RATE_MA_same.Rdata")
+save(RATE_MA_diff, file="~/scratch/data/RATE_MA_diff.Rdata")
