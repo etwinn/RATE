@@ -100,12 +100,13 @@ registerDoParallel(cores=cores)
 # f is sample_size x n matrix.... how solve this...
 #Need to figure out list for this.
 
-delta.all = list()
-foreach(j = 1:p, .combine='rbind')%dopar%{
+#delta = foreach(j = 1:p, .combine='rbind')%do%{
   #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
-  #for(j in 1:p)
+delta = matrix(0,nrow=sample_size, ncol=p)
+for(j in 1:p){
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-  new_X = X+cbind(matrix(0,n,j-1),matrix(1,n,1),matrix(0,n,p-j))
+  new_X = X
+  new_X[,j] = new_X[,j]+1
   Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
   
   ### Center and Scale K_tilde ###
@@ -117,18 +118,16 @@ foreach(j = 1:p, .combine='rbind')%dopar%{
   g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
   #g.rep is a 10000 by 2000 matrix
   g.rep = rmvnorm(sample_size,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
-  delta.all[[j]] = g.rep-fhat.rep
+  # this is a t by n matrix (t is number of draws), average over n
+  delta[,j] = t(rowMeans(g.rep-fhat.rep))
+  #return t by 1 matrix, thus delta is a t by p matrix
 }
-
-#Take average matrix, gives sample_size by n matrix as needed.
-delta.rep = rowMeans(simplify2array(delta.all),dims=2)
-#rm(delta.all) #Open up memory, no longer need.
 
 ### Run the RATE Function ###
 rate_choice = "RATE MC"
 nl = NULL
 #start = Sys.time()
-res = RATE(X=X,f.draws=delta.rep, snp.nms = colnames(X),cores = cores)
+res = RATE_MC(X=X,beta.draws=delta, snp.nms = colnames(X),cores = cores)
 #end = Sys.time()
 #print(end-start)
 
@@ -152,7 +151,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))  
-res2 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res2 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -174,7 +173,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res3 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res3 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res3$RATE
@@ -196,7 +195,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res4 = RATE(X=X,f.draws=delta.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+res4 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res4$RATE

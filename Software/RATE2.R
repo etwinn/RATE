@@ -121,6 +121,91 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS, "EffectSizes" = mu, "Time" = end-start))
 }
 
+#Calculate beta draws ahead of time, then run RATE.
+RATE_MC = function(X = X, beta.draws = beta.draws, prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1, kl = "OG"){
+  
+  ### Install the necessary libraries ###
+  #usePackage("doParallel")
+  usePackage("MASS")
+  usePackage("Matrix")
+  usePackage("svd")
+  usePackage("matrixcalc")
+  
+  ### Determine the number of Cores for Parallelization ###
+  if(cores > 1){
+    if(cores>detectCores()){warning("The number of cores you're setting is larger than detected cores!");cores = detectCores()}
+  }
+  
+  ### Register those Cores ###
+  registerDoParallel(cores=cores)
+  
+  #Begin timing
+  start = Sys.time()
+
+  #Calculate using given beta draws
+  
+  V = cov(beta.draws); #V = as.matrix(nearPD(V)$mat)
+  D = ginv(V)
+  svd_D = svd(D)
+  r = sum(svd_D$d>1e-10)
+  U = with(svd_D,t(sqrt(d[1:r])*t(u[,1:r])))
+  
+  mu = colMeans(beta.draws)
+  
+  
+  ### Create Lambda ###
+  Lambda = tcrossprod(U)
+  
+  ### Compute the Kullback-Leibler divergence (KLD) quadratic alternative for Each Predictor ###
+  int = 1:length(mu); l = nullify
+  
+  if(length(l)>0){int = int[-l]}
+  
+  if(kl == "OG"){
+    KLD = foreach(j = int, .combine='c', .export='sherman_r')%dopar%{ #Adding the .export part for windows
+      q = unique(c(j,l))
+      m = abs(mu[q])
+      
+      U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
+      #U_Lambda_sub = U_Lambda_sub[-q,-q]
+      alpha = crossprod(U_Lambda_sub[-q,q],crossprod(U_Lambda_sub[-q,-q],U_Lambda_sub[-q,q]))
+      kld = (t(m)%*%alpha%*%m)/2
+      names(kld) = snp.nms[j]
+      kld
+    } 
+  }else if(kl == "MC"){
+    KLD = foreach(j=int, .combine='c', .export = 'hadamard.prod')%dopar%{
+      q = unique(c(j,l))
+      m = abs(mu[q])
+      
+      #U_Lambda_sub = sherman_r(Lambda,V[,q],V[,q])
+      #U_Lambda_sub = U_Lambda_sub[-q,-q]
+      theta = crossprod(-Lambda[-q,-q],Lambda[-q,q])
+      alpha = t(theta)%*%Lambda[-q,-q]%*%theta
+      kld = sum(hadamard.prod(Lambda[-q,-q],V[-q,-q])) + ((beta.draws[q]-m)^2)*alpha
+      names(kld) = snp.nms[j]
+      kld
+    }
+  }else{
+    print('KLD specification not among the options.')
+    KLD = 1
+  }
+  
+  ### Compute the corresponding “RelATive cEntrality” (RATE) measure ###
+  RATE = KLD/sum(KLD)
+  
+  ### Find the entropic deviation from a uniform distribution ###
+  Delta = sum(RATE*log((length(mu)-length(nullify))*RATE))
+  
+  ### Calibrate Delta via the effective sample size (ESS) measures from importance sampling ###
+  #(Gruber and West, 2016, 2017)
+  ESS = 1/(1+Delta)*100
+  
+  end=Sys.time()
+  
+  ### Return a list of the values and results ###
+  return(list("KLD"=KLD,"RATE"=RATE,"Delta"=Delta,"ESS"=ESS, "EffectSizes" = mu, "Time" = end-start))
+}
 
 #Calculate the Beta's using just the linear model coefficients (super naive way)
 RATE_lin <- function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r = min(nrow(X),ncol(X)), nullify = NULL,snp.nms = snp.nms, cores = 1){

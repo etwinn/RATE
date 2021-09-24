@@ -295,7 +295,7 @@ for (k in 1:z) {
   ##### SAVE ALL VARIABLES AND THE DATA ###
   data = list("X"=X, "n"=n, "p"=p, "rho"= rho, "pve"=pve)
   RATE_MA_overlap = append(RATE_MA_overlap, list("data" = data, "RATES" = RATES))
-  assign(paste0("Trial_",k), RATE_MA_diff[[k]])
+  assign(paste0("Trial_",k), RATE_MA_overlap[[k]])
 }
 
 ##Export all saved variables
