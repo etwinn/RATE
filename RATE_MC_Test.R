@@ -110,10 +110,10 @@ for(j in 1:p){
   Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
   
   ### Center and Scale K_tilde ###
-  v=matrix(1, n, 1)
-  M=diag(n)-v%*%t(v)/n
-  Kn_g=M%*%Kn_g%*%M
-  Kn_g=Kn_g/mean(diag(Kn_g))
+  #v=matrix(1, n, 1)
+  #M=diag(n)-v%*%t(v)/n
+  #Kn_g=M%*%Kn_g%*%M
+  #Kn_g=Kn_g/mean(diag(Kn_g))
   #g #Don't need to sample, just get the expected value.
   g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
   #g.rep is a 10000 by 2000 matrix
@@ -151,7 +151,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))  
-res2 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
+res2 = RATE_MC(X=X,beta.draws=delta, nullify=nl, snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res2$RATE
@@ -173,7 +173,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res3 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
+res3 = RATE_MC(X=X,beta.draws=delta, nullify = nl, snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res3$RATE
@@ -195,7 +195,7 @@ legend("topleft",legend=c(as.expression(bquote(DELTA~"="~.(round(DELTA,3)))),as.
 ### Run the RATE Function ###
 top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
 nl = c(nl,as.numeric(top))
-res4 = RATE(X=X,f.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
+res4 = RATE_MC(X=X,beta.draws=delta, nullify=nl, snp.nms = colnames(X),cores = cores)
 
 ### Get the Results ###
 rates = res4$RATE
