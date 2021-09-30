@@ -31,7 +31,7 @@ sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2000; p = 25; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
+n = 2000; p = 10; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
 
 ### Define the Number of Causal SNPs
 ncausal = 3
@@ -40,7 +40,7 @@ ncausal = 3
 maf <- 0.05 + 0.45*runif(p)
 X   <- (runif(n*p) < maf) + (runif(n*p) < maf)
 X   <- matrix(as.double(X),n,p,byrow = TRUE)
-Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
+#Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
 s=c(8:10)
 
 #Marginal Effects Only
@@ -83,7 +83,7 @@ Kn = GaussKernel(t(X)); diag(Kn)=1 #
 ### Center and Scale K_tilde ###
 v=matrix(1, n, 1)
 M=diag(n)-v%*%t(v)/n
-
+Kn=M%*%Kn%*%M
 Kn=Kn/mean(diag(Kn))
 
 ### Gibbs Sampler ###

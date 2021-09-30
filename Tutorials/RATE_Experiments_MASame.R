@@ -44,7 +44,7 @@ RATE_MA_same = list()
 for (k in 1:z) {
   RATES = list()
   ### Set the random seed to reproduce research ###
-  set.seed(11151990)
+  set.seed(11151990+k)
   
   n = 2e3; p = 25; pve=0.6; rho=0.5;
   
@@ -55,7 +55,7 @@ for (k in 1:z) {
   maf <- 0.05 + 0.45*runif(p)
   X   <- (runif(n*p) < maf) + (runif(n*p) < maf)
   X   <- matrix(as.double(X),n,p,byrow = TRUE)
-  Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
+  #Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
   s=c(23:25)
   
   #Marginal Effects Only
@@ -238,7 +238,7 @@ for (k in 1:z) {
   ### Run the RATE_MC Function ###
   ##############################################
   start = Sys.time()
-  delta.all = vector(mode="list", length=p)
+  delta = matrix(0,nrow=sample_size, ncol=p)
   #foreach(j = 1:p, combine = 'rbind')%dopar%{
   for (j in 1:p){
     #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
@@ -248,24 +248,21 @@ for (k in 1:z) {
     Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
     
     ### Center and Scale K_tilde ###
-    v=matrix(1, n, 1)
-    M=diag(n)-v%*%t(v)/n
-    Kn_g=M%*%Kn_g%*%M
-    Kn_g=Kn_g/mean(diag(Kn_g))
+    #v=matrix(1, n, 1)
+    #M=diag(n)-v%*%t(v)/n
+    #Kn_g=M%*%Kn_g%*%M
+    #Kn_g=Kn_g/mean(diag(Kn_g))
     #g #Don't need to sample, just get the expected value.
     g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
     #g.rep is a 10000 by 2000 matrix
     g.rep = rmvnorm(sample_size,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
-    delta.all[[j]] = g.rep-fhat.rep
+    delta[,j] = t(rowMeans(g.rep-fhat.rep))
   }
-  
-  #Take average matrix, gives sample_size by n matrix as needed.
-  delta.rep = rowMeans(simplify2array(delta.all),dims=2)
-  rm(delta.all)
+
   end = Sys.time()
   
   nl = NULL
-  res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
+  res = RATE_MC(X=X,beta.draws = delta,snp.nms = colnames(X),cores = cores)
   res$Time = res$Time+(end-start)
   
   ### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
@@ -273,21 +270,21 @@ for (k in 1:z) {
   ### Run the RATE Function ###
   top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
   nl = c(nl,as.numeric(top))  
-  res2 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+  res2 = RATE_MC(X=X,beta.draws = delta,nullify = nl,snp.nms = colnames(X),cores = cores)
   
   ### Find Third Order Centrality by Nullifying the Top 2 Associated Predictor Variables ###
   
   ### Run the RATE Function ###
   top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
   nl = c(nl,as.numeric(top))
-  res3 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+  res3 = RATE_MC(X=X,beta.draws = delta,nullify = nl,snp.nms = colnames(X),cores = cores)
   
   ###Find Fourth Order Centrality by Nullifying the Top 3 Associated Predictor Variables ###
   
   ### Run the RATE Function ###
   top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
   nl = c(nl,as.numeric(top))
-  res4 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
+  res4 = RATE_MC(X=X,beta.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
   
   RATES = append(RATES, list("RATE_MC" = list("run1" = res, "run2"=res2, "run3"=res3, "run4"= res4)))
   
@@ -299,4 +296,4 @@ for (k in 1:z) {
 
 ##Export all saved variables
 
-save(RATE_MA_same, file="~/scratch/data/RATE_MA_same.Rdata")
+save(RATE_MA_same, file="~/scratch/data/RATE_MA_same_noXmean.Rdata")
