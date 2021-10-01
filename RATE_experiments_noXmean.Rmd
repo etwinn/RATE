@@ -8,11 +8,12 @@ output: pdf_document
 
 This notebook is for visualizing the initial RATE experiments for the different interactions. These are the baby experiments and more complicated ones will follow.
 
-In each experiment, we generate a data matrix $X$ which is $n=2000$ by $p=25$. We set the mixing coefficient between marginal and interactive effects to be $\rho = 0.5$ and $h^2 = 0.6$. In every scenario, we have the marginal effects coming equally from SNPS 23, 24, and 25. We consider three basic scenarios: 
+In each experiment, we generate a data matrix $X$ which is $n=2000$ by $p=25$. We set the mixing coefficient between marginal and interactive effects to be $\rho = 0.5$ and $h^2 = 0.6$. In every scenario where there are marginal effects, we have the marginal effects coming equally from SNPS 23, 24, and 25. We consider three basic scenarios: 
 
 * Same - In this situation, SNPs 23 and 24 each interact with 25. Thus all marginal and interactive effects come from these three SNPS.
 * Diff - In this situation, SNPs 8 and 9 each interact with SNP 10. The interactive effects come from 8,9, and 10, while the marginal effects come from 23, 24, and 25
 * Overlap - In this situation, SNPs 8 and 9 each interact with SNP 25. Thus SNP 25 contributes both interactive and marginal effects.
+* Interact - 8 and 9 interact with 10, and 23 and 24 each interact with 25. There are no marginal effects.
 
 For each of the generated data sets in each scenario, we run each of the following functions:
 
@@ -36,12 +37,14 @@ library(grid)
 library(gridExtra)
 library(tidyverse)
 library(dplyr)
+library(crossval)
 library(pROC)
 ```
 
 ```{r, echo = FALSE}
 load('Y:/scratch/data/RATE_MA_same_noXMean.Rdata')
 load('Y:/scratch/data/RATE_MA_diff_noXMean.Rdata')
+load('Y:/scratch/data/RATE_interaction.Rdata')
 load('Y:/scratch/data/RATE_MA_overlap_noXMean.Rdata')
 ```
 
@@ -143,14 +146,23 @@ p_diff <- DIFF_OG_ESdf %>% select(snps) %>%
 p_overlap <- OVERLAP_OG_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
-OG <- ggplot() + 
-  geom_count(data=p_same, aes(x=SNPS, y = RATES, color='same'), alpha=0.5) +
-  geom_count(data=p_diff, aes(x=SNPS,y=RATES, color='diff'), alpha=0.5) +
-  geom_count(data=p_overlap, aes(x=SNPS,y=RATES, color='overlap'),  alpha=0.5) +
+OGsame <- ggplot() + 
+  geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  labs(color="Legend")+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE OG Effect Sizes (all runs)")
+  ggtitle("RATE OG Effect Sizes (same)")
+
+OGdiff <- ggplot() +
+  geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE OG Effect Sizes (diff)")
+  
+OGoverlap <- ggplot() + 
+    geom_count(data=p_overlap, aes(x=SNPS,y=RATES),  alpha=0.8) +
+    scale_x_discrete(limits=snps) + 
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+    ggtitle("RATE OG Effect Sizes (overlap)")
 
 #plot the quad 
 
@@ -163,14 +175,23 @@ p_diff <- DIFF_quad_ESdf %>% select(snps) %>%
 p_overlap <- OVERLAP_quad_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
-Quad <- ggplot() + 
-  geom_count(data=p_same, aes(x=SNPS, y = RATES, color='same'), alpha=0.5) +
-  geom_count(data=p_diff, aes(x=SNPS,y=RATES, color='diff'), alpha=0.5) +
-  geom_count(data=p_overlap, aes(x=SNPS,y=RATES, color='overlap'), alpha=0.5) +
+Quadsame <- ggplot() + 
+  geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  labs(color="Legend")+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad Effect Sizes (all runs)")
+  ggtitle("RATE Quad Effect Sizes (same)")
+
+Quaddiff <- ggplot()+
+  geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Quad Effect Sizes (diff)")
+
+Quadoverlap <- ggplot()+
+  geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Quad Effect Sizes (overlap)")
 
 #plot the quad2
 
@@ -183,14 +204,23 @@ p_diff <- DIFF_quad2_ESdf %>% select(snps) %>%
 p_overlap <- OVERLAP_quad2_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
-Quad2 <- ggplot() + 
-  geom_count(data=p_same, aes(x=SNPS, y = RATES, color='same'), alpha=0.5) +
-  geom_count(data=p_diff, aes(x=SNPS,y=RATES, color='diff'), alpha=0.5) +
-  geom_count(data=p_overlap, aes(x=SNPS,y=RATES, color='overlap'), alpha=0.5) +
-  scale_x_discrete(limits=snps) + 
-  labs(color="Legend")+
+Quad2same <- ggplot() + 
+  geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad2 Effect Sizes (all runs)")
+  ggtitle("RATE Quad2 Effect Sizes (same)")
+
+Quad2diff <- ggplot()+
+  geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Quad2 Effect Sizes (diff)")
+
+Quad2overlap <- ggplot()+
+  geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Quad2 Effect Sizes (overlap)")
 
 #plot the combo
 
@@ -203,14 +233,23 @@ p_diff <- DIFF_combo_ESdf %>% select(snps) %>%
 p_overlap <- OVERLAP_combo_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
-Combo <- ggplot() + 
-  geom_count(data=p_same, aes(x=SNPS, y = RATES, color='same'), alpha=0.5) +
-  geom_count(data=p_diff, aes(x=SNPS,y=RATES, color='diff'), alpha=0.5) +
-  geom_count(data=p_overlap, aes(x=SNPS,y=RATES, color='overlap'), alpha=0.5) +
+Combosame <- ggplot() + 
+  geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  labs(color="Legend")+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Combo Effect Sizes (all runs)")
+  ggtitle("RATE Combo Effect Sizes (same)")
+
+Combodiff <- ggplot()+
+  geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Combo Effect Sizes (diff)")
+
+Combooverlap <- ggplot() + 
+  geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Combo Effect Sizes (overlap)")
 
 #plot the MC
 
@@ -223,18 +262,27 @@ p_diff <- DIFF_MC_ESdf %>% select(snps) %>%
 p_overlap <- OVERLAP_MC_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
-MC <- ggplot() + 
-  geom_count(data=p_same, aes(x=SNPS, y = RATES, color='same'), alpha=0.5) +
-  geom_count(data=p_diff, aes(x=SNPS,y=RATES, color='diff'), alpha=0.5) +
-  geom_count(data=p_overlap, aes(x=SNPS,y=RATES, color='overlap'), alpha=0.5) +
+MCsame <- ggplot() + 
+  geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  labs(color="Legend")+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (all runs)")
+  ggtitle("RATE MC Effect Sizes (same)")
+
+MCdiff <- ggplot() + 
+  geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE MC Effect Sizes (diff)")
+
+MCoverlap <- ggplot() + 
+  geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE MC Effect Sizes (overlap)")
 
 
 #Combine all plots below in 2 x 3 matrix
-grid.arrange(OG, Quad, Quad2, Combo, MC, nrow=3)
+grid.arrange(OGsame, OGdiff, OGoverlap, Quadsame, Quaddiff, Quadoverlap, Quad2same, Quad2diff, Quad2overlap, Combosame, Combodiff, Combooverlap, MCsame, MCdiff, MCoverlap, nrow=5)
 ```
 ## ROC's of RATE Values (plotted)
 
@@ -245,6 +293,8 @@ Here I will plot various ROC curves
 true_same = rep(0,25)
 true_diff = rep(0,25)
 true_overlap = rep(0,25)
+
+P = matrix(0,15,2)
 
 for (i in 23:25){
   true_same[i]=true_same[i]+1
@@ -258,6 +308,10 @@ for (i in 8:9){
 }
 true_diff[10] = true_diff[10] + 1
 
+true_same = t(t(rep(1,10)))%*%true_same
+true_diff = t(t(rep(1,10)))%*%true_diff
+true_overlap = t(t(rep(1,10)))%*%true_overlap
+
 #Now need to have the results in binary form from the results - if top rate, = 1, else 0.
 # had ten trials, 4 runs each, need to have ten rows and then figure out the differences. Basically each rate function + each scenario. Already have a data frame for each, just need the max in each one.
 
@@ -269,6 +323,10 @@ for (j in 1:10){
     same_OG_results[j,index] = 1
   }
 }
+
+cm=confusionMatrix(true_same, as.vector(same_OG_results), 0)
+P[1,1] 
+P[1,2]
 
 #Same_quad
 same_quad_results = matrix(0,10,25) #10 runs, 25 snps.

@@ -32,7 +32,7 @@ registerDoParallel(cores=cores)
 ######################################################################################
 ######################################################################################
 #Run z rounds
-z=10
+z=100
 #Save variables via a list, need RATE_OG, RATE_MC, RATE_quad, RATE_quad2, RATE_combo
 # Then need 4 rounds each. So let's make a list of each run, each run has
 # each function, function, each function has a list of values from each iteration of RATE, which is a list
@@ -121,28 +121,7 @@ for (k in 1:z) {
   nl = NULL
   res = RATE(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
   
-  ### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))  
-  res2 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ### Find Third Order Centrality by Nullifying the Top 2 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res3 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ###Find Fourth Order Centrality by Nullifying the Top 3 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res4 = RATE(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  RATES = append(RATES, list("RATE_OG" = list("run1" = res, "run2"=res2, "run3"=res3, "run4"= res4)))
+  RATES = append(RATES, list("RATE_OG" = res))
   
   ##############################################
   ### Run the RATE_quad Function ###
@@ -151,28 +130,7 @@ for (k in 1:z) {
   nl = NULL
   res = RATE_quad(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
   
-  ### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))  
-  res2 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ### Find Third Order Centrality by Nullifying the Top 2 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res3 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ###Find Fourth Order Centrality by Nullifying the Top 3 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res4 = RATE_quad(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  RATES = append(RATES, list("RATE_quad" = list("run1" = res, "run2"=res2, "run3"=res3, "run4"= res4)))
+  RATES = append(RATES, list("RATE_quad" = res))
   
   ##############################################
   ### Run the RATE_quad2 Function ###
@@ -181,29 +139,7 @@ for (k in 1:z) {
   nl = NULL
   res = RATE_quad2(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
   
-  ### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))  
-  res2 = RATE_quad2(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ### Find Third Order Centrality by Nullifying the Top 2 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res3 = RATE_quad2(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ###Find Fourth Order Centrality by Nullifying the Top 3 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res4 = RATE_quad2(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  RATES = append(RATES, list("RATE_quad2" = list("run1" = res, "run2"=res2, "run3"=res3, "run4"= res4)))
-  
+  RATES = append(RATES, list("RATE_quad2" = res))
   ##############################################
   ### Run the RATE_combo Function ###
   ##############################################
@@ -211,28 +147,7 @@ for (k in 1:z) {
   nl = NULL
   res = RATE_combo(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
   
-  ### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))  
-  res2 = RATE_combo(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ### Find Third Order Centrality by Nullifying the Top 2 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res3 = RATE_combo(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ###Find Fourth Order Centrality by Nullifying the Top 3 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res4 = RATE_combo(X=X,f.draws=fhat.rep,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  RATES = append(RATES, list("RATE_combo" = list("run1" = res, "run2"=res2, "run3"=res3, "run4"= res4)))
+  RATES = append(RATES, list("RATE_combo" = resl))
   
   ##############################################
   ### Run the RATE_MC Function ###
@@ -265,35 +180,22 @@ for (k in 1:z) {
   res = RATE_MC(X=X,beta.draws = delta,snp.nms = colnames(X),cores = cores)
   res$Time = res$Time+(end-start)
   
-  ### Find Second Order Centrality by Nullifying the Top Associated Predictor Variable ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res$KLD)[order(res$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))  
-  res2 = RATE_MC(X=X,beta.draws = delta,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ### Find Third Order Centrality by Nullifying the Top 2 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res2$KLD)[order(res2$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res3 = RATE_MC(X=X,beta.draws = delta,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  ###Find Fourth Order Centrality by Nullifying the Top 3 Associated Predictor Variables ###
-  
-  ### Run the RATE Function ###
-  top = substring(names(res3$KLD)[order(res3$KLD,decreasing=TRUE)[1]],first = 4)
-  nl = c(nl,as.numeric(top))
-  res4 = RATE_MC(X=X,beta.draws=delta,nullify = nl,snp.nms = colnames(X),cores = cores)
-  
-  RATES = append(RATES, list("RATE_MC" = list("run1" = res, "run2"=res2, "run3"=res3, "run4"= res4)))
+  RATES = append(RATES, list("RATE_MC" = res))
   
   ##### SAVE ALL VARIABLES AND THE DATA ###
   data = list("X"=X, "n"=n, "p"=p, "rho"= rho, "pve"=pve)
   RATE_MA_same = append(RATE_MA_same, list("data" = data, "RATES" = RATES))
-  assign(paste0("Trial_",k), RATE_MA_same[[k]])
 }
 
+data_name = paste0("data", seq(z))
+rate_name = paste0("RATE", seq(z))
+set_name = list()
+
+for (n in seq(z)){
+  set_name = append(set_name, list(data_name[n], rate_name[n]))
+}
+
+setNames(RATe_MA_same, set_name)
 ##Export all saved variables
 
 save(RATE_MA_same, file="~/scratch/data/RATE_MA_same_noXmean.Rdata")

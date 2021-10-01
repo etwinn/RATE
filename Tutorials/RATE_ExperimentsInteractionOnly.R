@@ -37,7 +37,7 @@ z=100
 # Then need 4 rounds each. So let's make a list of each run, each run has
 # each function, function, each function has a list of values from each iteration of RATE, which is a list
 # Also need to append the data for each round (n, p, pve, rho, X, seed?)
-RATE_MA_overlap = list()
+RATE_MA_interact = list()
 
 #Want to parallelize, but may just not because it's giving linux a hard time
 # foreach (k = 1:z) %dopar% {
@@ -46,7 +46,8 @@ for (k in 1:z) {
   ### Set the random seed to reproduce research ###
   set.seed(11151990+k)
   
-  n = 2e3; p = 25; pve=0.6; rho=0.5;
+  n = 2e3; p = 25; pve=0.6; rho=0;
+  #8, 9 interact with 10, and 23,24 interact with 25. No marginal effects.
   
   ### Define the Number of Causal SNPs
   ncausal = 3
@@ -67,8 +68,8 @@ for (k in 1:z) {
   y_marginal=Xmarginal%*%beta1
   
   #Pairwise Epistatic Effects
-  Xepi=cbind(X[,r[1]]*X[,r[3]],X[,r[2]]*X[,s[3]])
-  beta2=c(1,1)
+  Xepi=cbind(X[,r[1]]*X[,r[3]],X[,r[2]]*X[,r[3]],X[,s[1]]*X[,s[3]],X[,s[2]]*X[,s[3]])
+  beta2=c(1,1,1,1)
   y_epi=c(Xepi%*%beta2)
   beta2=beta2*sqrt(pve*(1-rho)/var(y_epi))
   y_epi=Xepi%*%beta2
@@ -130,8 +131,8 @@ for (k in 1:z) {
   
   nl = NULL
   res = RATE_quad(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
-
-  RATES = append(RATES,list("RATE_quad" = res))
+  
+  RATES = append(RATES, list("RATE_quad" = res))
   
   ##############################################
   ### Run the RATE_quad2 Function ###
@@ -140,7 +141,7 @@ for (k in 1:z) {
   nl = NULL
   res = RATE_quad2(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
   
-  RATES = append(RATES, list("RATE_quad2" = res))
+  RATES = append(RATES, list("RATE_quad2"= res))
   
   ##############################################
   ### Run the RATE_combo Function ###
@@ -149,7 +150,7 @@ for (k in 1:z) {
   nl = NULL
   res = RATE_combo(X=X,f.draws=fhat.rep,snp.nms = colnames(X),cores = cores)
   
-  RATES = append(RATES,list("RATE_combo" =  res))
+  RATES = append(RATES, list("RATE_combo"= res))
   
   ##############################################
   ### Run the RATE_MC Function ###
@@ -182,14 +183,13 @@ for (k in 1:z) {
   res = RATE_MC(X=X,beta.draws = delta,snp.nms = colnames(X),cores = cores)
   res$Time = res$Time+(end-start)
   
-  RATES = append(RATES, list("RATE_MC" = res))
+  RATES = append(RATES,list("RATE_MC" =res))
   
   ##### SAVE ALL VARIABLES AND THE DATA ###
   data = list("X"=X, "n"=n, "p"=p, "rho"= rho, "pve"=pve)
-  RATE_MA_overlap = append(RATE_MA_overlap, list("data" = data, "RATES" = RATES))
+  RATE_MA_interact = append(RATE_MA_interact, list("data" = data, "RATES" = RATES))
 }
 
-##Export all saved variables
 data_name = paste0("data", seq(z))
 rate_name = paste0("RATE", seq(z))
 set_name = list()
@@ -198,7 +198,7 @@ for (n in seq(z)){
   set_name = append(set_name, list(data_name[n], rate_name[n]))
 }
 
-setNames(RATE_MA_overlap, set_name)
+setNames(RATE_MA_interact, set_name)
+##Export all saved variables
 
-
-save(RATE_MA_overlap, file="~/scratch/data/RATE_MA_overlap_noXmean.Rdata")
+save(RATE_MA_interact, file="~/scratch/data/RATE_interaction.Rdata")
