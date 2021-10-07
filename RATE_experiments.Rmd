@@ -29,7 +29,7 @@ The data parameters, the effect sizes, delta, and ESS for each RATE function, an
 We now load the necessary the data.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(ggplot2)
 library(grid)
 library(gridExtra)
@@ -38,9 +38,10 @@ library(dplyr)
 ```
 
 ```{r}
-load('Z:/RATEexpData/RATE_MA_same_2.Rdata')
-load('Z:/RATEexpData/RATE_MA_diff_2.Rdata')
-load('Z:/RATEexpData/RATE_MA_overlap_2.Rdata')
+load('Y:/scratch/data/RATE_MA_same_2.Rdata')
+load('Y:/scratch/data/RATE_MA_diff_2.Rdata')
+load('Y:/scratch/data/RATE_MA_overlap_2.Rdata')
+#load('Y:/scratch/data/RATE_MA_interact.data')
 ```
 
 # Data Plots

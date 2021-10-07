@@ -198,6 +198,6 @@ for (n in seq(z)){
   set_name = append(set_name, list(data_name[n], rate_name[n]))
 }
 
-setNames(RATE_MA_diff, set_name)
+RATE_MA_diff = setNames(RATE_MA_diff, set_name)
 
 save(RATE_MA_diff, file="~/scratch/data/RATE_MA_diff_noXmean.Rdata")

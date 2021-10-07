@@ -31,14 +31,17 @@ The data parameters, the effect sizes, delta, and ESS for each RATE function, an
 * The line about `Xmean` has been taken out of the data simulations.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(ggplot2)
 library(grid)
 library(gridExtra)
 library(tidyverse)
 library(dplyr)
 library(crossval)
-library(pROC)
+library(doParallel)
+library("pracma")
+cores = detectCores()
+registerDoParallel(cores=cores)
 ```
 
 ```{r, echo = FALSE}
@@ -55,82 +58,40 @@ load('Y:/scratch/data/RATE_MA_overlap_noXMean.Rdata')
 First code to put together data frames, which will be hidden in the output of the markdown file.
 
 ```{r, include=FALSE}
-rate_types = c("RATE_OG", "RATE_combo", "RATE_combo2", "RATE_combo", "RATE_MC")
+rate_types = c("RATE_OG", "RATE_quad", "RATE_quad2", "RATE_combo", "RATE_MC")
 snps = paste("SNP",seq(25),sep="")
-runs = paste("run", seq(4), sep="")
-suffix1 = seq(10)
-suffix2 = seq(4)
-set_names <- paste("Set", suffix1, sep="")
-run_names <- unlist(lapply(paste("Set", suffix1, sep=""), paste0, paste("run",suffix2,sep="")))
+runs = paste("RATE", seq(100), sep="")
 
 #Same first
 
-SAME_OG_ESdf <- rbind.data.frame(RATE_MA_same[[2]]$RATE_OG$run1$RATE, RATE_MA_same[[2]]$RATE_OG$run2$RATE, RATE_MA_same[[2]]$RATE_OG$run3$RATE, RATE_MA_same[[2]]$RATE_OG$run4$RATE,RATE_MA_same[[4]]$RATE_OG$run1$RATE, RATE_MA_same[[4]]$RATE_OG$run2$RATE, RATE_MA_same[[4]]$RATE_OG$run3$RATE, RATE_MA_same[[4]]$RATE_OG$run4$RATE,RATE_MA_same[[6]]$RATE_OG$run1$RATE, RATE_MA_same[[6]]$RATE_OG$run2$RATE, RATE_MA_same[[6]]$RATE_OG$run3$RATE, RATE_MA_same[[6]]$RATE_OG$run4$RATE,RATE_MA_same[[8]]$RATE_OG$run1$RATE, RATE_MA_same[[8]]$RATE_OG$run2$RATE, RATE_MA_same[[8]]$RATE_OG$run3$RATE, RATE_MA_same[[8]]$RATE_OG$run4$RATE,RATE_MA_same[[10]]$RATE_OG$run1$RATE, RATE_MA_same[[10]]$RATE_OG$run2$RATE, RATE_MA_same[[10]]$RATE_OG$run3$RATE, RATE_MA_same[[10]]$RATE_OG$run4$RATE,RATE_MA_same[[12]]$RATE_OG$run1$RATE, RATE_MA_same[[12]]$RATE_OG$run2$RATE, RATE_MA_same[[12]]$RATE_OG$run3$RATE, RATE_MA_same[[12]]$RATE_OG$run4$RATE,RATE_MA_same[[14]]$RATE_OG$run1$RATE, RATE_MA_same[[14]]$RATE_OG$run2$RATE, RATE_MA_same[[14]]$RATE_OG$run3$RATE, RATE_MA_same[[14]]$RATE_OG$run4$RATE,RATE_MA_same[[16]]$RATE_OG$run1$RATE, RATE_MA_same[[16]]$RATE_OG$run2$RATE, RATE_MA_same[[16]]$RATE_OG$run3$RATE, RATE_MA_same[[16]]$RATE_OG$run4$RATE,RATE_MA_same[[18]]$RATE_OG$run1$RATE, RATE_MA_same[[18]]$RATE_OG$run2$RATE, RATE_MA_same[[18]]$RATE_OG$run3$RATE, RATE_MA_same[[18]]$RATE_OG$run4$RATE,RATE_MA_same[[20]]$RATE_OG$run1$RATE, RATE_MA_same[[20]]$RATE_OG$run2$RATE, RATE_MA_same[[20]]$RATE_OG$run3$RATE, RATE_MA_same[[20]]$RATE_OG$run4$RATE)
-colnames(SAME_OG_ESdf) = snps
-rownames(SAME_OG_ESdf) = run_names
-
-
-SAME_quad_ESdf <- rbind.data.frame(RATE_MA_same[[2]]$RATE_quad$run1$RATE, RATE_MA_same[[2]]$RATE_quad$run2$RATE, RATE_MA_same[[2]]$RATE_quad$run3$RATE, RATE_MA_same[[2]]$RATE_quad$run4$RATE,RATE_MA_same[[4]]$RATE_quad$run1$RATE, RATE_MA_same[[4]]$RATE_quad$run2$RATE, RATE_MA_same[[4]]$RATE_quad$run3$RATE, RATE_MA_same[[4]]$RATE_quad$run4$RATE,RATE_MA_same[[6]]$RATE_quad$run1$RATE, RATE_MA_same[[6]]$RATE_quad$run2$RATE, RATE_MA_same[[6]]$RATE_quad$run3$RATE, RATE_MA_same[[6]]$RATE_quad$run4$RATE,RATE_MA_same[[8]]$RATE_quad$run1$RATE, RATE_MA_same[[8]]$RATE_quad$run2$RATE, RATE_MA_same[[8]]$RATE_quad$run3$RATE, RATE_MA_same[[8]]$RATE_quad$run4$RATE,RATE_MA_same[[10]]$RATE_quad$run1$RATE, RATE_MA_same[[10]]$RATE_quad$run2$RATE, RATE_MA_same[[10]]$RATE_quad$run3$RATE, RATE_MA_same[[10]]$RATE_quad$run4$RATE,RATE_MA_same[[12]]$RATE_quad$run1$RATE, RATE_MA_same[[12]]$RATE_quad$run2$RATE, RATE_MA_same[[12]]$RATE_quad$run3$RATE, RATE_MA_same[[12]]$RATE_quad$run4$RATE,RATE_MA_same[[14]]$RATE_quad$run1$RATE, RATE_MA_same[[14]]$RATE_quad$run2$RATE, RATE_MA_same[[14]]$RATE_quad$run3$RATE, RATE_MA_same[[14]]$RATE_quad$run4$RATE,RATE_MA_same[[16]]$RATE_quad$run1$RATE, RATE_MA_same[[16]]$RATE_quad$run2$RATE, RATE_MA_same[[16]]$RATE_quad$run3$RATE, RATE_MA_same[[16]]$RATE_quad$run4$RATE,RATE_MA_same[[18]]$RATE_quad$run1$RATE, RATE_MA_same[[18]]$RATE_quad$run2$RATE, RATE_MA_same[[18]]$RATE_quad$run3$RATE, RATE_MA_same[[18]]$RATE_quad$run4$RATE,RATE_MA_same[[20]]$RATE_quad$run1$RATE, RATE_MA_same[[20]]$RATE_quad$run2$RATE, RATE_MA_same[[20]]$RATE_quad$run3$RATE, RATE_MA_same[[20]]$RATE_quad$run4$RATE)
-colnames(SAME_quad_ESdf) = snps
-rownames(SAME_quad_ESdf) = run_names
-
-SAME_quad2_ESdf <- rbind.data.frame(RATE_MA_same[[2]]$RATE_quad2$run1$RATE, RATE_MA_same[[2]]$RATE_quad2$run2$RATE, RATE_MA_same[[2]]$RATE_quad2$run3$RATE, RATE_MA_same[[2]]$RATE_quad2$run4$RATE,RATE_MA_same[[4]]$RATE_quad2$run1$RATE, RATE_MA_same[[4]]$RATE_quad2$run2$RATE, RATE_MA_same[[4]]$RATE_quad2$run3$RATE, RATE_MA_same[[4]]$RATE_quad2$run4$RATE,RATE_MA_same[[6]]$RATE_quad2$run1$RATE, RATE_MA_same[[6]]$RATE_quad2$run2$RATE, RATE_MA_same[[6]]$RATE_quad2$run3$RATE, RATE_MA_same[[6]]$RATE_quad2$run4$RATE,RATE_MA_same[[8]]$RATE_quad2$run1$RATE, RATE_MA_same[[8]]$RATE_quad2$run2$RATE, RATE_MA_same[[8]]$RATE_quad2$run3$RATE, RATE_MA_same[[8]]$RATE_quad2$run4$RATE,RATE_MA_same[[10]]$RATE_quad2$run1$RATE, RATE_MA_same[[10]]$RATE_quad2$run2$RATE, RATE_MA_same[[10]]$RATE_quad2$run3$RATE, RATE_MA_same[[10]]$RATE_quad2$run4$RATE,RATE_MA_same[[12]]$RATE_quad2$run1$RATE, RATE_MA_same[[12]]$RATE_quad2$run2$RATE, RATE_MA_same[[12]]$RATE_quad2$run3$RATE, RATE_MA_same[[12]]$RATE_quad2$run4$RATE,RATE_MA_same[[14]]$RATE_quad2$run1$RATE, RATE_MA_same[[14]]$RATE_quad2$run2$RATE, RATE_MA_same[[14]]$RATE_quad2$run3$RATE, RATE_MA_same[[14]]$RATE_quad2$run4$RATE,RATE_MA_same[[16]]$RATE_quad2$run1$RATE, RATE_MA_same[[16]]$RATE_quad2$run2$RATE, RATE_MA_same[[16]]$RATE_quad2$run3$RATE, RATE_MA_same[[16]]$RATE_quad2$run4$RATE,RATE_MA_same[[18]]$RATE_quad2$run1$RATE, RATE_MA_same[[18]]$RATE_quad2$run2$RATE, RATE_MA_same[[18]]$RATE_quad2$run3$RATE, RATE_MA_same[[18]]$RATE_quad2$run4$RATE,RATE_MA_same[[20]]$RATE_quad2$run1$RATE, RATE_MA_same[[20]]$RATE_quad2$run2$RATE, RATE_MA_same[[20]]$RATE_quad2$run3$RATE, RATE_MA_same[[20]]$RATE_quad2$run4$RATE)
-colnames(SAME_quad2_ESdf) = snps
-rownames(SAME_quad2_ESdf) = run_names
-
-SAME_combo_ESdf <- rbind.data.frame(RATE_MA_same[[2]]$RATE_combo$run1$RATE, RATE_MA_same[[2]]$RATE_combo$run2$RATE, RATE_MA_same[[2]]$RATE_combo$run3$RATE, RATE_MA_same[[2]]$RATE_combo$run4$RATE,RATE_MA_same[[4]]$RATE_combo$run1$RATE, RATE_MA_same[[4]]$RATE_combo$run2$RATE, RATE_MA_same[[4]]$RATE_combo$run3$RATE, RATE_MA_same[[4]]$RATE_combo$run4$RATE,RATE_MA_same[[6]]$RATE_combo$run1$RATE, RATE_MA_same[[6]]$RATE_combo$run2$RATE, RATE_MA_same[[6]]$RATE_combo$run3$RATE, RATE_MA_same[[6]]$RATE_combo$run4$RATE,RATE_MA_same[[8]]$RATE_combo$run1$RATE, RATE_MA_same[[8]]$RATE_combo$run2$RATE, RATE_MA_same[[8]]$RATE_combo$run3$RATE, RATE_MA_same[[8]]$RATE_combo$run4$RATE,RATE_MA_same[[10]]$RATE_combo$run1$RATE, RATE_MA_same[[10]]$RATE_combo$run2$RATE, RATE_MA_same[[10]]$RATE_combo$run3$RATE, RATE_MA_same[[10]]$RATE_combo$run4$RATE,RATE_MA_same[[12]]$RATE_combo$run1$RATE, RATE_MA_same[[12]]$RATE_combo$run2$RATE, RATE_MA_same[[12]]$RATE_combo$run3$RATE, RATE_MA_same[[12]]$RATE_combo$run4$RATE,RATE_MA_same[[14]]$RATE_combo$run1$RATE, RATE_MA_same[[14]]$RATE_combo$run2$RATE, RATE_MA_same[[14]]$RATE_combo$run3$RATE, RATE_MA_same[[14]]$RATE_combo$run4$RATE,RATE_MA_same[[16]]$RATE_combo$run1$RATE, RATE_MA_same[[16]]$RATE_combo$run2$RATE, RATE_MA_same[[16]]$RATE_combo$run3$RATE, RATE_MA_same[[16]]$RATE_combo$run4$RATE,RATE_MA_same[[18]]$RATE_combo$run1$RATE, RATE_MA_same[[18]]$RATE_combo$run2$RATE, RATE_MA_same[[18]]$RATE_combo$run3$RATE, RATE_MA_same[[18]]$RATE_combo$run4$RATE,RATE_MA_same[[20]]$RATE_combo$run1$RATE, RATE_MA_same[[20]]$RATE_combo$run2$RATE, RATE_MA_same[[20]]$RATE_combo$run3$RATE, RATE_MA_same[[20]]$RATE_combo$run4$RATE)
-colnames(SAME_combo_ESdf) = snps
-rownames(SAME_combo_ESdf) = run_names
-
-SAME_MC_ESdf <- rbind.data.frame(RATE_MA_same[[2]]$RATE_MC$run1$RATE, RATE_MA_same[[2]]$RATE_MC$run2$RATE, RATE_MA_same[[2]]$RATE_MC$run3$RATE, RATE_MA_same[[2]]$RATE_MC$run4$RATE,RATE_MA_same[[4]]$RATE_MC$run1$RATE, RATE_MA_same[[4]]$RATE_MC$run2$RATE, RATE_MA_same[[4]]$RATE_MC$run3$RATE, RATE_MA_same[[4]]$RATE_MC$run4$RATE,RATE_MA_same[[6]]$RATE_MC$run1$RATE, RATE_MA_same[[6]]$RATE_MC$run2$RATE, RATE_MA_same[[6]]$RATE_MC$run3$RATE, RATE_MA_same[[6]]$RATE_MC$run4$RATE,RATE_MA_same[[8]]$RATE_MC$run1$RATE, RATE_MA_same[[8]]$RATE_MC$run2$RATE, RATE_MA_same[[8]]$RATE_MC$run3$RATE, RATE_MA_same[[8]]$RATE_MC$run4$RATE,RATE_MA_same[[10]]$RATE_MC$run1$RATE, RATE_MA_same[[10]]$RATE_MC$run2$RATE, RATE_MA_same[[10]]$RATE_MC$run3$RATE, RATE_MA_same[[10]]$RATE_MC$run4$RATE,RATE_MA_same[[12]]$RATE_MC$run1$RATE, RATE_MA_same[[12]]$RATE_MC$run2$RATE, RATE_MA_same[[12]]$RATE_MC$run3$RATE, RATE_MA_same[[12]]$RATE_MC$run4$RATE,RATE_MA_same[[14]]$RATE_MC$run1$RATE, RATE_MA_same[[14]]$RATE_MC$run2$RATE, RATE_MA_same[[14]]$RATE_MC$run3$RATE, RATE_MA_same[[14]]$RATE_MC$run4$RATE,RATE_MA_same[[16]]$RATE_MC$run1$RATE, RATE_MA_same[[16]]$RATE_MC$run2$RATE, RATE_MA_same[[16]]$RATE_MC$run3$RATE, RATE_MA_same[[16]]$RATE_MC$run4$RATE,RATE_MA_same[[18]]$RATE_MC$run1$RATE, RATE_MA_same[[18]]$RATE_MC$run2$RATE, RATE_MA_same[[18]]$RATE_MC$run3$RATE, RATE_MA_same[[18]]$RATE_MC$run4$RATE,RATE_MA_same[[20]]$RATE_MC$run1$RATE, RATE_MA_same[[20]]$RATE_MC$run2$RATE, RATE_MA_same[[20]]$RATE_MC$run3$RATE, RATE_MA_same[[20]]$RATE_MC$run4$RATE)
-colnames(SAME_MC_ESdf) = snps
-rownames(SAME_MC_ESdf) = run_names
+SAME_OG_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_OG"]][["RATE"]]))))
+SAME_quad_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_quad"]][["RATE"]]))))
+SAME_quad2_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_quad2"]][["RATE"]]))))
+SAME_combo_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_combo"]][["RATE"]]))))
+SAME_MC_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_MC"]][["RATE"]]))))
 
 #Diff next
+DIFF_OG_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_OG"]][["RATE"]]))))
+DIFF_quad_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_quad"]][["RATE"]]))))
+DIFF_quad2_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_quad2"]][["RATE"]]))))
+DIFF_combo_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_combo"]][["RATE"]]))))
+DIFF_MC_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_MC"]][["RATE"]]))))
 
-DIFF_OG_ESdf <- rbind.data.frame(RATE_MA_diff[[2]]$RATE_OG$run1$RATE, RATE_MA_diff[[2]]$RATE_OG$run2$RATE, RATE_MA_diff[[2]]$RATE_OG$run3$RATE, RATE_MA_diff[[2]]$RATE_OG$run4$RATE,RATE_MA_diff[[4]]$RATE_OG$run1$RATE, RATE_MA_diff[[4]]$RATE_OG$run2$RATE, RATE_MA_diff[[4]]$RATE_OG$run3$RATE, RATE_MA_diff[[4]]$RATE_OG$run4$RATE,RATE_MA_diff[[6]]$RATE_OG$run1$RATE, RATE_MA_diff[[6]]$RATE_OG$run2$RATE, RATE_MA_diff[[6]]$RATE_OG$run3$RATE, RATE_MA_diff[[6]]$RATE_OG$run4$RATE,RATE_MA_diff[[8]]$RATE_OG$run1$RATE, RATE_MA_diff[[8]]$RATE_OG$run2$RATE, RATE_MA_diff[[8]]$RATE_OG$run3$RATE, RATE_MA_diff[[8]]$RATE_OG$run4$RATE,RATE_MA_diff[[10]]$RATE_OG$run1$RATE, RATE_MA_diff[[10]]$RATE_OG$run2$RATE, RATE_MA_diff[[10]]$RATE_OG$run3$RATE, RATE_MA_diff[[10]]$RATE_OG$run4$RATE,RATE_MA_diff[[12]]$RATE_OG$run1$RATE, RATE_MA_diff[[12]]$RATE_OG$run2$RATE, RATE_MA_diff[[12]]$RATE_OG$run3$RATE, RATE_MA_diff[[12]]$RATE_OG$run4$RATE,RATE_MA_diff[[14]]$RATE_OG$run1$RATE, RATE_MA_diff[[14]]$RATE_OG$run2$RATE, RATE_MA_diff[[14]]$RATE_OG$run3$RATE, RATE_MA_diff[[14]]$RATE_OG$run4$RATE,RATE_MA_diff[[16]]$RATE_OG$run1$RATE, RATE_MA_diff[[16]]$RATE_OG$run2$RATE, RATE_MA_diff[[16]]$RATE_OG$run3$RATE, RATE_MA_diff[[16]]$RATE_OG$run4$RATE,RATE_MA_diff[[18]]$RATE_OG$run1$RATE, RATE_MA_diff[[18]]$RATE_OG$run2$RATE, RATE_MA_diff[[18]]$RATE_OG$run3$RATE, RATE_MA_diff[[18]]$RATE_OG$run4$RATE,RATE_MA_diff[[20]]$RATE_OG$run1$RATE, RATE_MA_diff[[20]]$RATE_OG$run2$RATE, RATE_MA_diff[[20]]$RATE_OG$run3$RATE, RATE_MA_diff[[20]]$RATE_OG$run4$RATE)
-colnames(DIFF_OG_ESdf) = snps
-rownames(DIFF_OG_ESdf) = run_names
+#Overlap after
+OVERLAP_OG_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_OG"]][["RATE"]]))))
+OVERLAP_quad_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_quad"]][["RATE"]]))))
+OVERLAP_quad2_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_quad2"]][["RATE"]]))))
+OVERLAP_combo_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_combo"]][["RATE"]]))))
+OVERLAP_MC_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_MC"]][["RATE"]]))))
 
-
-DIFF_quad_ESdf <- rbind.data.frame(RATE_MA_diff[[2]]$RATE_quad$run1$RATE, RATE_MA_diff[[2]]$RATE_quad$run2$RATE, RATE_MA_diff[[2]]$RATE_quad$run3$RATE, RATE_MA_diff[[2]]$RATE_quad$run4$RATE,RATE_MA_diff[[4]]$RATE_quad$run1$RATE, RATE_MA_diff[[4]]$RATE_quad$run2$RATE, RATE_MA_diff[[4]]$RATE_quad$run3$RATE, RATE_MA_diff[[4]]$RATE_quad$run4$RATE,RATE_MA_diff[[6]]$RATE_quad$run1$RATE, RATE_MA_diff[[6]]$RATE_quad$run2$RATE, RATE_MA_diff[[6]]$RATE_quad$run3$RATE, RATE_MA_diff[[6]]$RATE_quad$run4$RATE,RATE_MA_diff[[8]]$RATE_quad$run1$RATE, RATE_MA_diff[[8]]$RATE_quad$run2$RATE, RATE_MA_diff[[8]]$RATE_quad$run3$RATE, RATE_MA_diff[[8]]$RATE_quad$run4$RATE,RATE_MA_diff[[10]]$RATE_quad$run1$RATE, RATE_MA_diff[[10]]$RATE_quad$run2$RATE, RATE_MA_diff[[10]]$RATE_quad$run3$RATE, RATE_MA_diff[[10]]$RATE_quad$run4$RATE,RATE_MA_diff[[12]]$RATE_quad$run1$RATE, RATE_MA_diff[[12]]$RATE_quad$run2$RATE, RATE_MA_diff[[12]]$RATE_quad$run3$RATE, RATE_MA_diff[[12]]$RATE_quad$run4$RATE,RATE_MA_diff[[14]]$RATE_quad$run1$RATE, RATE_MA_diff[[14]]$RATE_quad$run2$RATE, RATE_MA_diff[[14]]$RATE_quad$run3$RATE, RATE_MA_diff[[14]]$RATE_quad$run4$RATE,RATE_MA_diff[[16]]$RATE_quad$run1$RATE, RATE_MA_diff[[16]]$RATE_quad$run2$RATE, RATE_MA_diff[[16]]$RATE_quad$run3$RATE, RATE_MA_diff[[16]]$RATE_quad$run4$RATE,RATE_MA_diff[[18]]$RATE_quad$run1$RATE, RATE_MA_diff[[18]]$RATE_quad$run2$RATE, RATE_MA_diff[[18]]$RATE_quad$run3$RATE, RATE_MA_diff[[18]]$RATE_quad$run4$RATE,RATE_MA_diff[[20]]$RATE_quad$run1$RATE, RATE_MA_diff[[20]]$RATE_quad$run2$RATE, RATE_MA_diff[[20]]$RATE_quad$run3$RATE, RATE_MA_diff[[20]]$RATE_quad$run4$RATE)
-colnames(DIFF_quad_ESdf) = snps
-rownames(DIFF_quad_ESdf) = run_names
-
-DIFF_quad2_ESdf <- rbind.data.frame(RATE_MA_diff[[2]]$RATE_quad2$run1$RATE, RATE_MA_diff[[2]]$RATE_quad2$run2$RATE, RATE_MA_diff[[2]]$RATE_quad2$run3$RATE, RATE_MA_diff[[2]]$RATE_quad2$run4$RATE,RATE_MA_diff[[4]]$RATE_quad2$run1$RATE, RATE_MA_diff[[4]]$RATE_quad2$run2$RATE, RATE_MA_diff[[4]]$RATE_quad2$run3$RATE, RATE_MA_diff[[4]]$RATE_quad2$run4$RATE,RATE_MA_diff[[6]]$RATE_quad2$run1$RATE, RATE_MA_diff[[6]]$RATE_quad2$run2$RATE, RATE_MA_diff[[6]]$RATE_quad2$run3$RATE, RATE_MA_diff[[6]]$RATE_quad2$run4$RATE,RATE_MA_diff[[8]]$RATE_quad2$run1$RATE, RATE_MA_diff[[8]]$RATE_quad2$run2$RATE, RATE_MA_diff[[8]]$RATE_quad2$run3$RATE, RATE_MA_diff[[8]]$RATE_quad2$run4$RATE,RATE_MA_diff[[10]]$RATE_quad2$run1$RATE, RATE_MA_diff[[10]]$RATE_quad2$run2$RATE, RATE_MA_diff[[10]]$RATE_quad2$run3$RATE, RATE_MA_diff[[10]]$RATE_quad2$run4$RATE,RATE_MA_diff[[12]]$RATE_quad2$run1$RATE, RATE_MA_diff[[12]]$RATE_quad2$run2$RATE, RATE_MA_diff[[12]]$RATE_quad2$run3$RATE, RATE_MA_diff[[12]]$RATE_quad2$run4$RATE,RATE_MA_diff[[14]]$RATE_quad2$run1$RATE, RATE_MA_diff[[14]]$RATE_quad2$run2$RATE, RATE_MA_diff[[14]]$RATE_quad2$run3$RATE, RATE_MA_diff[[14]]$RATE_quad2$run4$RATE,RATE_MA_diff[[16]]$RATE_quad2$run1$RATE, RATE_MA_diff[[16]]$RATE_quad2$run2$RATE, RATE_MA_diff[[16]]$RATE_quad2$run3$RATE, RATE_MA_diff[[16]]$RATE_quad2$run4$RATE,RATE_MA_diff[[18]]$RATE_quad2$run1$RATE, RATE_MA_diff[[18]]$RATE_quad2$run2$RATE, RATE_MA_diff[[18]]$RATE_quad2$run3$RATE, RATE_MA_diff[[18]]$RATE_quad2$run4$RATE,RATE_MA_diff[[20]]$RATE_quad2$run1$RATE, RATE_MA_diff[[20]]$RATE_quad2$run2$RATE, RATE_MA_diff[[20]]$RATE_quad2$run3$RATE, RATE_MA_diff[[20]]$RATE_quad2$run4$RATE)
-colnames(DIFF_quad2_ESdf) = snps
-rownames(DIFF_quad2_ESdf) = run_names
-
-DIFF_combo_ESdf <- rbind.data.frame(RATE_MA_diff[[2]]$RATE_combo$run1$RATE, RATE_MA_diff[[2]]$RATE_combo$run2$RATE, RATE_MA_diff[[2]]$RATE_combo$run3$RATE, RATE_MA_diff[[2]]$RATE_combo$run4$RATE,RATE_MA_diff[[4]]$RATE_combo$run1$RATE, RATE_MA_diff[[4]]$RATE_combo$run2$RATE, RATE_MA_diff[[4]]$RATE_combo$run3$RATE, RATE_MA_diff[[4]]$RATE_combo$run4$RATE,RATE_MA_diff[[6]]$RATE_combo$run1$RATE, RATE_MA_diff[[6]]$RATE_combo$run2$RATE, RATE_MA_diff[[6]]$RATE_combo$run3$RATE, RATE_MA_diff[[6]]$RATE_combo$run4$RATE,RATE_MA_diff[[8]]$RATE_combo$run1$RATE, RATE_MA_diff[[8]]$RATE_combo$run2$RATE, RATE_MA_diff[[8]]$RATE_combo$run3$RATE, RATE_MA_diff[[8]]$RATE_combo$run4$RATE,RATE_MA_diff[[10]]$RATE_combo$run1$RATE, RATE_MA_diff[[10]]$RATE_combo$run2$RATE, RATE_MA_diff[[10]]$RATE_combo$run3$RATE, RATE_MA_diff[[10]]$RATE_combo$run4$RATE,RATE_MA_diff[[12]]$RATE_combo$run1$RATE, RATE_MA_diff[[12]]$RATE_combo$run2$RATE, RATE_MA_diff[[12]]$RATE_combo$run3$RATE, RATE_MA_diff[[12]]$RATE_combo$run4$RATE,RATE_MA_diff[[14]]$RATE_combo$run1$RATE, RATE_MA_diff[[14]]$RATE_combo$run2$RATE, RATE_MA_diff[[14]]$RATE_combo$run3$RATE, RATE_MA_diff[[14]]$RATE_combo$run4$RATE,RATE_MA_diff[[16]]$RATE_combo$run1$RATE, RATE_MA_diff[[16]]$RATE_combo$run2$RATE, RATE_MA_diff[[16]]$RATE_combo$run3$RATE, RATE_MA_diff[[16]]$RATE_combo$run4$RATE,RATE_MA_diff[[18]]$RATE_combo$run1$RATE, RATE_MA_diff[[18]]$RATE_combo$run2$RATE, RATE_MA_diff[[18]]$RATE_combo$run3$RATE, RATE_MA_diff[[18]]$RATE_combo$run4$RATE,RATE_MA_diff[[20]]$RATE_combo$run1$RATE, RATE_MA_diff[[20]]$RATE_combo$run2$RATE, RATE_MA_diff[[20]]$RATE_combo$run3$RATE, RATE_MA_diff[[20]]$RATE_combo$run4$RATE)
-colnames(DIFF_combo_ESdf) = snps
-rownames(DIFF_combo_ESdf) = run_names
-
-DIFF_MC_ESdf <- rbind.data.frame(RATE_MA_diff[[2]]$RATE_MC$run1$RATE, RATE_MA_diff[[2]]$RATE_MC$run2$RATE, RATE_MA_diff[[2]]$RATE_MC$run3$RATE, RATE_MA_diff[[2]]$RATE_MC$run4$RATE,RATE_MA_diff[[4]]$RATE_MC$run1$RATE, RATE_MA_diff[[4]]$RATE_MC$run2$RATE, RATE_MA_diff[[4]]$RATE_MC$run3$RATE, RATE_MA_diff[[4]]$RATE_MC$run4$RATE,RATE_MA_diff[[6]]$RATE_MC$run1$RATE, RATE_MA_diff[[6]]$RATE_MC$run2$RATE, RATE_MA_diff[[6]]$RATE_MC$run3$RATE, RATE_MA_diff[[6]]$RATE_MC$run4$RATE,RATE_MA_diff[[8]]$RATE_MC$run1$RATE, RATE_MA_diff[[8]]$RATE_MC$run2$RATE, RATE_MA_diff[[8]]$RATE_MC$run3$RATE, RATE_MA_diff[[8]]$RATE_MC$run4$RATE,RATE_MA_diff[[10]]$RATE_MC$run1$RATE, RATE_MA_diff[[10]]$RATE_MC$run2$RATE, RATE_MA_diff[[10]]$RATE_MC$run3$RATE, RATE_MA_diff[[10]]$RATE_MC$run4$RATE,RATE_MA_diff[[12]]$RATE_MC$run1$RATE, RATE_MA_diff[[12]]$RATE_MC$run2$RATE, RATE_MA_diff[[12]]$RATE_MC$run3$RATE, RATE_MA_diff[[12]]$RATE_MC$run4$RATE,RATE_MA_diff[[14]]$RATE_MC$run1$RATE, RATE_MA_diff[[14]]$RATE_MC$run2$RATE, RATE_MA_diff[[14]]$RATE_MC$run3$RATE, RATE_MA_diff[[14]]$RATE_MC$run4$RATE,RATE_MA_diff[[16]]$RATE_MC$run1$RATE, RATE_MA_diff[[16]]$RATE_MC$run2$RATE, RATE_MA_diff[[16]]$RATE_MC$run3$RATE, RATE_MA_diff[[16]]$RATE_MC$run4$RATE,RATE_MA_diff[[18]]$RATE_MC$run1$RATE, RATE_MA_diff[[18]]$RATE_MC$run2$RATE, RATE_MA_diff[[18]]$RATE_MC$run3$RATE, RATE_MA_diff[[18]]$RATE_MC$run4$RATE,RATE_MA_diff[[20]]$RATE_MC$run1$RATE, RATE_MA_diff[[20]]$RATE_MC$run2$RATE, RATE_MA_diff[[20]]$RATE_MC$run3$RATE, RATE_MA_diff[[20]]$RATE_MC$run4$RATE)
-colnames(DIFF_MC_ESdf) = snps
-rownames(DIFF_MC_ESdf) = run_names
-
-#Overlap last
-
-OVERLAP_OG_ESdf <- rbind.data.frame(RATE_MA_overlap[[2]]$RATE_OG$run1$RATE, RATE_MA_overlap[[2]]$RATE_OG$run2$RATE, RATE_MA_overlap[[2]]$RATE_OG$run3$RATE, RATE_MA_overlap[[2]]$RATE_OG$run4$RATE,RATE_MA_overlap[[4]]$RATE_OG$run1$RATE, RATE_MA_overlap[[4]]$RATE_OG$run2$RATE, RATE_MA_overlap[[4]]$RATE_OG$run3$RATE, RATE_MA_overlap[[4]]$RATE_OG$run4$RATE,RATE_MA_overlap[[6]]$RATE_OG$run1$RATE, RATE_MA_overlap[[6]]$RATE_OG$run2$RATE, RATE_MA_overlap[[6]]$RATE_OG$run3$RATE, RATE_MA_overlap[[6]]$RATE_OG$run4$RATE,RATE_MA_overlap[[8]]$RATE_OG$run1$RATE, RATE_MA_overlap[[8]]$RATE_OG$run2$RATE, RATE_MA_overlap[[8]]$RATE_OG$run3$RATE, RATE_MA_overlap[[8]]$RATE_OG$run4$RATE,RATE_MA_overlap[[10]]$RATE_OG$run1$RATE, RATE_MA_overlap[[10]]$RATE_OG$run2$RATE, RATE_MA_overlap[[10]]$RATE_OG$run3$RATE, RATE_MA_overlap[[10]]$RATE_OG$run4$RATE,RATE_MA_overlap[[12]]$RATE_OG$run1$RATE, RATE_MA_overlap[[12]]$RATE_OG$run2$RATE, RATE_MA_overlap[[12]]$RATE_OG$run3$RATE, RATE_MA_overlap[[12]]$RATE_OG$run4$RATE,RATE_MA_overlap[[14]]$RATE_OG$run1$RATE, RATE_MA_overlap[[14]]$RATE_OG$run2$RATE, RATE_MA_overlap[[14]]$RATE_OG$run3$RATE, RATE_MA_overlap[[14]]$RATE_OG$run4$RATE,RATE_MA_overlap[[16]]$RATE_OG$run1$RATE, RATE_MA_overlap[[16]]$RATE_OG$run2$RATE, RATE_MA_overlap[[16]]$RATE_OG$run3$RATE, RATE_MA_overlap[[16]]$RATE_OG$run4$RATE,RATE_MA_overlap[[18]]$RATE_OG$run1$RATE, RATE_MA_overlap[[18]]$RATE_OG$run2$RATE, RATE_MA_overlap[[18]]$RATE_OG$run3$RATE, RATE_MA_overlap[[18]]$RATE_OG$run4$RATE,RATE_MA_overlap[[20]]$RATE_OG$run1$RATE, RATE_MA_overlap[[20]]$RATE_OG$run2$RATE, RATE_MA_overlap[[20]]$RATE_OG$run3$RATE, RATE_MA_overlap[[20]]$RATE_OG$run4$RATE)
-colnames(OVERLAP_OG_ESdf) = snps
-rownames(OVERLAP_OG_ESdf) = run_names
+#Interact last
+INTERACT_OG_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_OG"]][["RATE"]]))))
+INTERACT_quad_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_quad"]][["RATE"]]))))
+INTERACT_quad2_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_quad2"]][["RATE"]]))))
+INTERACT_combo_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_combo"]][["RATE"]]))))
+INTERACT_MC_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_MC"]][["RATE"]]))))
 
 
-OVERLAP_quad_ESdf <- rbind.data.frame(RATE_MA_overlap[[2]]$RATE_quad$run1$RATE, RATE_MA_overlap[[2]]$RATE_quad$run2$RATE, RATE_MA_overlap[[2]]$RATE_quad$run3$RATE, RATE_MA_overlap[[2]]$RATE_quad$run4$RATE,RATE_MA_overlap[[4]]$RATE_quad$run1$RATE, RATE_MA_overlap[[4]]$RATE_quad$run2$RATE, RATE_MA_overlap[[4]]$RATE_quad$run3$RATE, RATE_MA_overlap[[4]]$RATE_quad$run4$RATE,RATE_MA_overlap[[6]]$RATE_quad$run1$RATE, RATE_MA_overlap[[6]]$RATE_quad$run2$RATE, RATE_MA_overlap[[6]]$RATE_quad$run3$RATE, RATE_MA_overlap[[6]]$RATE_quad$run4$RATE,RATE_MA_overlap[[8]]$RATE_quad$run1$RATE, RATE_MA_overlap[[8]]$RATE_quad$run2$RATE, RATE_MA_overlap[[8]]$RATE_quad$run3$RATE, RATE_MA_overlap[[8]]$RATE_quad$run4$RATE,RATE_MA_overlap[[10]]$RATE_quad$run1$RATE, RATE_MA_overlap[[10]]$RATE_quad$run2$RATE, RATE_MA_overlap[[10]]$RATE_quad$run3$RATE, RATE_MA_overlap[[10]]$RATE_quad$run4$RATE,RATE_MA_overlap[[12]]$RATE_quad$run1$RATE, RATE_MA_overlap[[12]]$RATE_quad$run2$RATE, RATE_MA_overlap[[12]]$RATE_quad$run3$RATE, RATE_MA_overlap[[12]]$RATE_quad$run4$RATE,RATE_MA_overlap[[14]]$RATE_quad$run1$RATE, RATE_MA_overlap[[14]]$RATE_quad$run2$RATE, RATE_MA_overlap[[14]]$RATE_quad$run3$RATE, RATE_MA_overlap[[14]]$RATE_quad$run4$RATE,RATE_MA_overlap[[16]]$RATE_quad$run1$RATE, RATE_MA_overlap[[16]]$RATE_quad$run2$RATE, RATE_MA_overlap[[16]]$RATE_quad$run3$RATE, RATE_MA_overlap[[16]]$RATE_quad$run4$RATE,RATE_MA_overlap[[18]]$RATE_quad$run1$RATE, RATE_MA_overlap[[18]]$RATE_quad$run2$RATE, RATE_MA_overlap[[18]]$RATE_quad$run3$RATE, RATE_MA_overlap[[18]]$RATE_quad$run4$RATE,RATE_MA_overlap[[20]]$RATE_quad$run1$RATE, RATE_MA_overlap[[20]]$RATE_quad$run2$RATE, RATE_MA_overlap[[20]]$RATE_quad$run3$RATE, RATE_MA_overlap[[20]]$RATE_quad$run4$RATE)
-colnames(OVERLAP_quad_ESdf) = snps
-rownames(OVERLAP_quad_ESdf) = run_names
-
-OVERLAP_quad2_ESdf <- rbind.data.frame(RATE_MA_overlap[[2]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[2]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[2]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[2]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[4]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[4]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[4]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[4]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[6]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[6]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[6]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[6]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[8]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[8]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[8]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[8]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[10]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[10]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[10]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[10]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[12]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[12]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[12]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[12]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[14]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[14]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[14]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[14]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[16]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[16]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[16]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[16]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[18]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[18]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[18]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[18]]$RATE_quad2$run4$RATE,RATE_MA_overlap[[20]]$RATE_quad2$run1$RATE, RATE_MA_overlap[[20]]$RATE_quad2$run2$RATE, RATE_MA_overlap[[20]]$RATE_quad2$run3$RATE, RATE_MA_overlap[[20]]$RATE_quad2$run4$RATE)
-colnames(OVERLAP_quad2_ESdf) = snps
-rownames(OVERLAP_quad2_ESdf) = run_names
-
-OVERLAP_combo_ESdf <- rbind.data.frame(RATE_MA_overlap[[2]]$RATE_combo$run1$RATE, RATE_MA_overlap[[2]]$RATE_combo$run2$RATE, RATE_MA_overlap[[2]]$RATE_combo$run3$RATE, RATE_MA_overlap[[2]]$RATE_combo$run4$RATE,RATE_MA_overlap[[4]]$RATE_combo$run1$RATE, RATE_MA_overlap[[4]]$RATE_combo$run2$RATE, RATE_MA_overlap[[4]]$RATE_combo$run3$RATE, RATE_MA_overlap[[4]]$RATE_combo$run4$RATE,RATE_MA_overlap[[6]]$RATE_combo$run1$RATE, RATE_MA_overlap[[6]]$RATE_combo$run2$RATE, RATE_MA_overlap[[6]]$RATE_combo$run3$RATE, RATE_MA_overlap[[6]]$RATE_combo$run4$RATE,RATE_MA_overlap[[8]]$RATE_combo$run1$RATE, RATE_MA_overlap[[8]]$RATE_combo$run2$RATE, RATE_MA_overlap[[8]]$RATE_combo$run3$RATE, RATE_MA_overlap[[8]]$RATE_combo$run4$RATE,RATE_MA_overlap[[10]]$RATE_combo$run1$RATE, RATE_MA_overlap[[10]]$RATE_combo$run2$RATE, RATE_MA_overlap[[10]]$RATE_combo$run3$RATE, RATE_MA_overlap[[10]]$RATE_combo$run4$RATE,RATE_MA_overlap[[12]]$RATE_combo$run1$RATE, RATE_MA_overlap[[12]]$RATE_combo$run2$RATE, RATE_MA_overlap[[12]]$RATE_combo$run3$RATE, RATE_MA_overlap[[12]]$RATE_combo$run4$RATE,RATE_MA_overlap[[14]]$RATE_combo$run1$RATE, RATE_MA_overlap[[14]]$RATE_combo$run2$RATE, RATE_MA_overlap[[14]]$RATE_combo$run3$RATE, RATE_MA_overlap[[14]]$RATE_combo$run4$RATE,RATE_MA_overlap[[16]]$RATE_combo$run1$RATE, RATE_MA_overlap[[16]]$RATE_combo$run2$RATE, RATE_MA_overlap[[16]]$RATE_combo$run3$RATE, RATE_MA_overlap[[16]]$RATE_combo$run4$RATE,RATE_MA_overlap[[18]]$RATE_combo$run1$RATE, RATE_MA_overlap[[18]]$RATE_combo$run2$RATE, RATE_MA_overlap[[18]]$RATE_combo$run3$RATE, RATE_MA_overlap[[18]]$RATE_combo$run4$RATE,RATE_MA_overlap[[20]]$RATE_combo$run1$RATE, RATE_MA_overlap[[20]]$RATE_combo$run2$RATE, RATE_MA_overlap[[20]]$RATE_combo$run3$RATE, RATE_MA_overlap[[20]]$RATE_combo$run4$RATE)
-colnames(OVERLAP_combo_ESdf) = snps
-rownames(OVERLAP_combo_ESdf) = run_names
-
-OVERLAP_MC_ESdf <- rbind.data.frame(RATE_MA_overlap[[2]]$RATE_MC$run1$RATE, RATE_MA_overlap[[2]]$RATE_MC$run2$RATE, RATE_MA_overlap[[2]]$RATE_MC$run3$RATE, RATE_MA_overlap[[2]]$RATE_MC$run4$RATE,RATE_MA_overlap[[4]]$RATE_MC$run1$RATE, RATE_MA_overlap[[4]]$RATE_MC$run2$RATE, RATE_MA_overlap[[4]]$RATE_MC$run3$RATE, RATE_MA_overlap[[4]]$RATE_MC$run4$RATE,RATE_MA_overlap[[6]]$RATE_MC$run1$RATE, RATE_MA_overlap[[6]]$RATE_MC$run2$RATE, RATE_MA_overlap[[6]]$RATE_MC$run3$RATE, RATE_MA_overlap[[6]]$RATE_MC$run4$RATE,RATE_MA_overlap[[8]]$RATE_MC$run1$RATE, RATE_MA_overlap[[8]]$RATE_MC$run2$RATE, RATE_MA_overlap[[8]]$RATE_MC$run3$RATE, RATE_MA_overlap[[8]]$RATE_MC$run4$RATE,RATE_MA_overlap[[10]]$RATE_MC$run1$RATE, RATE_MA_overlap[[10]]$RATE_MC$run2$RATE, RATE_MA_overlap[[10]]$RATE_MC$run3$RATE, RATE_MA_overlap[[10]]$RATE_MC$run4$RATE,RATE_MA_overlap[[12]]$RATE_MC$run1$RATE, RATE_MA_overlap[[12]]$RATE_MC$run2$RATE, RATE_MA_overlap[[12]]$RATE_MC$run3$RATE, RATE_MA_overlap[[12]]$RATE_MC$run4$RATE,RATE_MA_overlap[[14]]$RATE_MC$run1$RATE, RATE_MA_overlap[[14]]$RATE_MC$run2$RATE, RATE_MA_overlap[[14]]$RATE_MC$run3$RATE, RATE_MA_overlap[[14]]$RATE_MC$run4$RATE,RATE_MA_overlap[[16]]$RATE_MC$run1$RATE, RATE_MA_overlap[[16]]$RATE_MC$run2$RATE, RATE_MA_overlap[[16]]$RATE_MC$run3$RATE, RATE_MA_overlap[[16]]$RATE_MC$run4$RATE,RATE_MA_overlap[[18]]$RATE_MC$run1$RATE, RATE_MA_overlap[[18]]$RATE_MC$run2$RATE, RATE_MA_overlap[[18]]$RATE_MC$run3$RATE, RATE_MA_overlap[[18]]$RATE_MC$run4$RATE,RATE_MA_overlap[[20]]$RATE_MC$run1$RATE, RATE_MA_overlap[[20]]$RATE_MC$run2$RATE, RATE_MA_overlap[[20]]$RATE_MC$run3$RATE, RATE_MA_overlap[[20]]$RATE_MC$run4$RATE)
-colnames(OVERLAP_MC_ESdf) = snps
-rownames(OVERLAP_MC_ESdf) = run_names
 ```
 
 Now we want to plot stuff. There is a lot of code but you can skip all this to get to the graphs. The biggest thing to note is, regardless of scenario, it seems none of the functions were able to pick up on additive effects of 8, 9, or 10 when relevant. No idea why this is. `RATE_quad` and `RATE_quad2` also seem to be extra sensitive to noise.
@@ -144,6 +105,9 @@ p_diff <- DIFF_OG_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 p_overlap <- OVERLAP_OG_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_interact <- INTERACT_OG_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 OGsame <- ggplot() + 
@@ -164,6 +128,12 @@ OGoverlap <- ggplot() +
     theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
     ggtitle("RATE OG Effect Sizes (overlap)")
 
+OGinteract <- ggplot() + 
+    geom_count(data=p_interact, aes(x=SNPS,y=RATES),  alpha=0.8) +
+    scale_x_discrete(limits=snps) + 
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+    ggtitle("RATE OG Effect Sizes (interact)")
+
 #plot the quad 
 
 p_same <- SAME_quad_ESdf %>% select(snps) %>%
@@ -173,6 +143,9 @@ p_diff <- DIFF_quad_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 p_overlap <- OVERLAP_quad_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_interact <- INTERACT_quad_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 Quadsame <- ggplot() + 
@@ -193,6 +166,12 @@ Quadoverlap <- ggplot()+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
   ggtitle("RATE Quad Effect Sizes (overlap)")
 
+Quadinteract <- ggplot()+
+  geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Quad Effect Sizes (interact)")
+
 #plot the quad2
 
 p_same <- SAME_quad2_ESdf %>% select(snps) %>%
@@ -203,6 +182,10 @@ p_diff <- DIFF_quad2_ESdf %>% select(snps) %>%
 
 p_overlap <- OVERLAP_quad2_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_interact <- INTERACT_quad2_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
 
 Quad2same <- ggplot() + 
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
@@ -222,6 +205,12 @@ Quad2overlap <- ggplot()+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
   ggtitle("RATE Quad2 Effect Sizes (overlap)")
 
+Quad2interact <- ggplot()+
+  geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Quad2 Effect Sizes (interact)")
+
 #plot the combo
 
 p_same <- SAME_combo_ESdf %>% select(snps) %>%
@@ -231,6 +220,9 @@ p_diff <- DIFF_combo_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 p_overlap <- OVERLAP_combo_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_interact <- INTERACT_combo_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 Combosame <- ggplot() + 
@@ -251,6 +243,12 @@ Combooverlap <- ggplot() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
   ggtitle("RATE Combo Effect Sizes (overlap)")
 
+Combointeract <- ggplot() + 
+  geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE Combo Effect Sizes (interact)")
+
 #plot the MC
 
 p_same <- SAME_MC_ESdf %>% select(snps) %>%
@@ -260,6 +258,9 @@ p_diff <- DIFF_MC_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 p_overlap <- OVERLAP_MC_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_interact <- INTERACT_MC_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 MCsame <- ggplot() + 
@@ -280,222 +281,245 @@ MCoverlap <- ggplot() +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
   ggtitle("RATE MC Effect Sizes (overlap)")
 
+MCinteract <- ggplot() + 
+  geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  ggtitle("RATE MC Effect Sizes (interact)")
+
 
 #Combine all plots below in 2 x 3 matrix
-grid.arrange(OGsame, OGdiff, OGoverlap, Quadsame, Quaddiff, Quadoverlap, Quad2same, Quad2diff, Quad2overlap, Combosame, Combodiff, Combooverlap, MCsame, MCdiff, MCoverlap, nrow=5)
+grid.arrange(OGsame, OGdiff, OGoverlap, OGinteract, Quadsame, Quaddiff, Quadoverlap, Quadinteract, Quad2same, Quad2diff, Quad2overlap, Quad2interact, Combosame, Combodiff, Combooverlap, Combointeract, MCsame, MCdiff, MCoverlap, MCinteract, nrow=5)
 ```
 ## ROC's of RATE Values (plotted)
 
 Here I will plot various ROC curves
 
+### Same
+
 ```{r, echo=FALSE}
-#First need to have our "answer" vectors.
-true_same = rep(0,25)
-true_diff = rep(0,25)
-true_overlap = rep(0,25)
+same_snps = snps[23:25]
+diff_snps = c(snps[8:10], snps[23:25])
+interact_snps = diff_snps
+overlap_snps = c(snps[8:9], snps[23:25])
 
-P = matrix(0,15,2)
-
-for (i in 23:25){
-  true_same[i]=true_same[i]+1
-  true_diff[i]=true_diff[i]+1
-  true_overlap[i] = true_overlap[i] + 1
-}
-
-for (i in 8:9){
-  true_diff[i] = true_diff[i] +1
-  true_overlap[i] = true_overlap[i] + 1
-}
-true_diff[10] = true_diff[10] + 1
-
-true_same = t(t(rep(1,10)))%*%true_same
-true_diff = t(t(rep(1,10)))%*%true_diff
-true_overlap = t(t(rep(1,10)))%*%true_overlap
-
-#Now need to have the results in binary form from the results - if top rate, = 1, else 0.
-# had ten trials, 4 runs each, need to have ten rows and then figure out the differences. Basically each rate function + each scenario. Already have a data frame for each, just need the max in each one.
-
-#Same_OG
-same_OG_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(SAME_OG_ESdf[paste0(set_names[j],run),]))
-    same_OG_results[j,index] = 1
+### Define the Compute Power Function ###
+compute.power <- function(pvals,SNPs){
+  nsnps = length(pvals)
+  Pos = SNPs #True Positive Set
+  Negs = names(pvals)[which(names(pvals)%in%SNPs==FALSE)] #True Negative Set
+  x = foreach(i = 1:nsnps)%dopar%{
+    v = sort(pvals,decreasing = TRUE)[1:i] #Test Positives
+    z = pvals[which(names(pvals)%in%names(v)==FALSE)] #Test Negatives
+    
+    TP = length(which(names(v)%in%Pos==TRUE))
+    FP = length(which(names(v)%in%Pos==FALSE))
+    TN = length(which(names(z)%in%Negs==TRUE))
+    FN = length(which(names(z)%in%Negs==FALSE))
+    
+    TPR = TP/(TP+FN); FPR = FP/(FP+TN); FDR = FP/(FP+TP)
+    c(TPR,FPR,FDR)
   }
+  return(matrix(unlist(x),ncol = 3,byrow = TRUE))
 }
 
-cm=confusionMatrix(true_same, as.vector(same_OG_results), 0)
-P[1,1] 
-P[1,2]
-
-#Same_quad
-same_quad_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(SAME_quad_ESdf[paste0(set_names[j],run),]))
-    same_quad_results[j,index] = 1
-  }
+power.sameOG = 0
+for (i in 1:100){
+  power.sameOG = power.sameOG + compute.power(RATE_MA_same[[2*i]]$RATE_OG$RATE, same_snps)
 }
+power.sameOG = power.sameOG/100
 
-#same_quad2
-same_quad2_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(SAME_quad2_ESdf[paste0(set_names[j],run),]))
-    same_quad2_results[j,index] = 1
-  }
+power.sameQuad = 0
+for (i in 1:100){
+  power.sameQuad = power.sameQuad + compute.power(RATE_MA_same[[2*i]]$RATE_quad$RATE, same_snps)
 }
+power.sameQuad = power.sameQuad/100
 
-#same_combo
-same_combo_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(SAME_combo_ESdf[paste0(set_names[j],run),]))
-    same_combo_results[j,index] = 1
-  }
+power.sameQuad2 = 0
+for (i in 1:100){
+  power.sameQuad2 = power.sameQuad2 + compute.power(RATE_MA_same[[2*i]]$RATE_quad2$RATE, same_snps)
 }
+power.sameQuad2 = power.sameQuad2/100
 
-#same_mc
-same_mc_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(SAME_MC_ESdf[paste0(set_names[j],run),]))
-    same_mc_results[j,index] = 1
-  }
+power.sameCombo = 0
+for (i in 1:100){
+  power.sameCombo = power.sameCombo + compute.power(RATE_MA_same[[2*i]]$RATE_combo$RATE, same_snps)
 }
+power.sameCombo = power.sameCombo/100
 
-#diff_OG
-diff_OG_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(DIFF_OG_ESdf[paste0(set_names[j],run),]))
-    diff_OG_results[j,index] = 1
-  }
+power.sameMC = 0
+for (i in 1:100){
+  power.sameMC = power.sameMC + compute.power(RATE_MA_same[[2*i]]$RATE_MC$RATE, same_snps)
 }
+power.sameMC = power.sameMC/100
 
-#diff_quad
-diff_quad_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(DIFF_quad_ESdf[paste0(set_names[j],run),]))
-    diff_quad_results[j,index] = 1
-  }
-}
 
-#diff_quad2
-diff_quad2_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(DIFF_quad2_ESdf[paste0(set_names[j],run),]))
-    diff_quad2_results[j,index] = 1
-  }
-}
-
-#diff_combo
-diff_combo_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(DIFF_combo_ESdf[paste0(set_names[j],run),]))
-    diff_combo_results[j,index] = 1
-  }
-}
-
-#diff_mc
-diff_mc_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(DIFF_MC_ESdf[paste0(set_names[j],run),]))
-    diff_mc_results[j,index] = 1
-  }
-}
-
-#overlap_OG
-overlap_OG_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(OVERLAP_OG_ESdf[paste0(set_names[j],run),]))
-    overlap_OG_results[j,index] = 1
-  }
-}
-
-#overlap_quad
-overlap_quad_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(OVERLAP_quad_ESdf[paste0(set_names[j],run),]))
-    overlap_quad_results[j,index] = 1
-  }
-}
-
-#overlap_quad2
-overlap_quad2_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(OVERLAP_quad2_ESdf[paste0(set_names[j],run),]))
-    overlap_quad2_results[j,index] = 1
-  }
-}
-
-#overlap_combo
-overlap_combo_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(OVERLAP_combo_ESdf[paste0(set_names[j],run),]))
-    overlap_combo_results[j,index] = 1
-  }
-}
-
-#overlap_mc
-overlap_mc_results = matrix(0,10,25) #10 runs, 25 snps.
-for (j in 1:10){
-  for (run in runs){
-    index = as.numeric(which.max(OVERLAP_MC_ESdf[paste0(set_names[j],run),]))
-    overlap_mc_results[j,index] = 1
-  }
-}
 ```
 
 ROC for same (SNPs 23, 24, 25 all have marginal effects, 23 and 25 and 24 and 25 are interactions.)
 ```{r, plot=TRUE}
-fun_names = c("RATE_OG","quad","quad2","combo","MC")
-test = t(t(rep(1,10)))%*%true_same
-plot.roc(as.vector(test), as.vector(same_OG_results), col='black')
-plot.roc(as.vector(test), as.vector(same_quad_results), add=TRUE, col='magenta')
-plot.roc(as.vector(test), as.vector(same_quad2_results), add=TRUE, col='orange3', lty=4)
-plot.roc(as.vector(test), as.vector(same_combo_results), add=TRUE, col='green', lty=5)
-plot.roc(as.vector(test), as.vector(same_mc_results), add=TRUE, col='blue', lty=6)
-title(main="RATE over SAME")
-legend("right", legend=fun_names, col = c("black", "magenta", "orange3", "green", "blue"), lwd=4)
+PP = cbind(power.sameOG, power.sameQuad, power.sameQuad2, power.sameCombo, power.sameMC)
+auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
+m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
+#
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
+legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+abline(a=0, b=1,col="black",lwd = 2)
+dev.off()
 
 ```
+### Different
+
 ROC for different (marginal effects from snps 23, 24, 25, and interactions between 8 and 10 and 9 and 10).
 ```{r, plot=TRUE}
-fun_names = c("RATE_OG","quad","quad2","combo","MC")
-test = t(t(rep(1,10)))%*%true_diff
-plot.roc(as.vector(test), as.vector(diff_OG_results), col='black')
-plot.roc(as.vector(test), as.vector(diff_quad_results), add=TRUE, col='magenta')
-plot.roc(as.vector(test), as.vector(diff_quad2_results), add=TRUE, col='orange3', lty=4)
-plot.roc(as.vector(test), as.vector(diff_combo_results), add=TRUE, col='green', lty=5)
-plot.roc(as.vector(test), as.vector(diff_mc_results), add=TRUE, col='blue', lty=6)
-title(main="RATE over DIFF")
-legend("right", legend=fun_names, col = c("black", "magenta", "orange3", "green", "blue"), lwd=4)
+power.diffOG = 0
+for (i in 1:100){
+  power.diffOG = power.diffOG + compute.power(RATE_MA_diff[[2*i]]$RATE_OG$RATE, diff_snps)
+}
+power.diffOG = power.diffOG/100
 
+power.diffQuad = 0
+for (i in 1:100){
+  power.diffQuad = power.diffQuad + compute.power(RATE_MA_diff[[2*i]]$RATE_quad$RATE, diff_snps)
+}
+power.diffQuad = power.diffQuad/100
+
+power.diffQuad2 = 0
+for (i in 1:100){
+  power.diffQuad2 = power.diffQuad2 + compute.power(RATE_MA_diff[[2*i]]$RATE_quad2$RATE, diff_snps)
+}
+power.diffQuad2 = power.diffQuad2/100
+
+power.diffCombo = 0
+for (i in 1:100){
+  power.diffCombo = power.diffCombo + compute.power(RATE_MA_diff[[2*i]]$RATE_combo$RATE, diff_snps)
+}
+power.diffCombo = power.diffCombo/100
+
+power.diffMC = 0
+for (i in 1:100){
+  power.diffMC = power.diffMC + compute.power(RATE_MA_diff[[2*i]]$RATE_MC$RATE, diff_snps)
+}
+power.diffMC = power.diffMC/100
+
+PP = cbind(power.diffOG, power.diffQuad, power.diffQuad2, power.diffCombo, power.diffMC)
+auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
+m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
+#
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
+legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+abline(a=0, b=1,col="black",lwd = 2)
+dev.off()
 ```
+### Overlap
+
 ROC for overlap (marginal effects from snps 23, 24, 25, and interactions between 8 and 25 and 9 and 25).
+
 ```{r, plot=TRUE}
-fun_names = c("RATE_OG","quad","quad2","combo","MC")
-test = t(t(rep(1,10)))%*%true_overlap
-plot.roc(as.vector(test), as.vector(overlap_OG_results), col='black')
-plot.roc(as.vector(test), as.vector(overlap_quad_results), add=TRUE, col='magenta')
-plot.roc(as.vector(test), as.vector(overlap_quad2_results), add=TRUE, col='orange3', lty=4)
-plot.roc(as.vector(test), as.vector(overlap_combo_results), add=TRUE, col='green', lty=5)
-plot.roc(as.vector(test), as.vector(overlap_mc_results), add=TRUE, col='blue', lty=6)
-title(main="RATE over OVERLAP")
-legend("right", legend=fun_names, col = c("black", "magenta", "orange3", "green", "blue"), lwd=4)
+power.overlapOG = 0
+for (i in 1:100){
+  power.overlapOG = power.overlapOG + compute.power(RATE_MA_overlap[[2*i]]$RATE_OG$RATE, overlap_snps)
+}
+power.overlapOG = power.overlapOG/100
+
+power.overlapQuad = 0
+for (i in 1:100){
+  power.overlapQuad = power.overlapQuad + compute.power(RATE_MA_overlap[[2*i]]$RATE_quad$RATE, overlap_snps)
+}
+power.overlapQuad = power.overlapQuad/100
+
+power.overlapQuad2 = 0
+for (i in 1:100){
+  power.overlapQuad2 = power.overlapQuad2 + compute.power(RATE_MA_overlap[[2*i]]$RATE_quad2$RATE, overlap_snps)
+}
+power.overlapQuad2 = power.overlapQuad2/100
+
+power.overlapCombo = 0
+for (i in 1:100){
+  power.overlapCombo = power.overlapCombo + compute.power(RATE_MA_overlap[[2*i]]$RATE_combo$RATE, overlap_snps)
+}
+power.overlapCombo = power.overlapCombo/100
+
+power.overlapMC = 0
+for (i in 1:100){
+  power.overlapMC = power.overlapMC + compute.power(RATE_MA_overlap[[2*i]]$RATE_MC$RATE, overlap_snps)
+}
+power.overlapMC = power.overlapMC/100
+
+PP = cbind(power.overlapOG, power.overlapQuad, power.overlapQuad2, power.overlapCombo, power.overlapMC)
+auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
+m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
+#
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
+legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+abline(a=0, b=1,col="black",lwd = 2)
+dev.off()
 
 ```
 
-```{r, echo = FALSE, fig.height=15, fig.width=20}
+### Interact
+
+ROC for interact (no marginal effects, 8 and 9 interact with 10, 23 and 24 interact with 25)
+
+```{r, plot=TRUE}
+power.interactOG = 0
+for (i in 1:100){
+  power.interactOG = power.interactOG + compute.power(RATE_MA_interact[[2*i]]$RATE_OG$RATE, interact_snps)
+}
+power.interactOG = power.interactOG/100
+
+power.interactQuad = 0
+for (i in 1:100){
+  power.interactQuad = power.interactQuad + compute.power(RATE_MA_interact[[2*i]]$RATE_quad$RATE, interact_snps)
+}
+power.interactQuad = power.interactQuad/100
+
+power.interactQuad2 = 0
+for (i in 1:100){
+  power.interactQuad2 = power.interactQuad2 + compute.power(RATE_MA_interact[[2*i]]$RATE_quad2$RATE, interact_snps)
+}
+power.interactQuad2 = power.interactQuad2/100
+
+power.interactCombo = 0
+for (i in 1:100){
+  power.interactCombo = power.interactCombo + compute.power(RATE_MA_interact[[2*i]]$RATE_combo$RATE, interact_snps)
+}
+power.interactCombo = power.interactCombo/100
+
+power.interactMC = 0
+for (i in 1:100){
+  power.interactMC = power.interactMC + compute.power(RATE_MA_interact[[2*i]]$RATE_MC$RATE, interact_snps)
+}
+power.interactMC = power.interactMC/100
+
+PP = cbind(power.interactOG, power.interactQuad, power.interactQuad2, power.interactCombo, power.interactMC)
+auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
+m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
+#
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
+legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+abline(a=0, b=1,col="black",lwd = 2)
+dev.off()
+
+```
+
+```{r, include = FALSE, fig.height=15, fig.width=20}
 
 #THIS is SNP by SNP comparison. Don't need.
 
@@ -536,200 +560,5 @@ overlap <- ggplot(overlap_compare) +
 grid.arrange(same, diff, overlap, nrow=2)
 ```
 
-## Times of Runs
-
-Code hidden for assembling the data frame for times of each run.
-
-```{r, include=FALSE}
-suffix1 = seq(10)
-suffix2 = seq(4)
-time_names <- unlist(lapply(paste("Set", suffix1, sep=""), paste0, paste("run",suffix2,sep="")))
-
-Same_OG_df <- data.frame(RATE_MA_same[[2]]$RATE_OG$run1$Time, RATE_MA_same[[2]]$RATE_OG$run2$Time, RATE_MA_same[[2]]$RATE_OG$run3$Time, RATE_MA_same[[2]]$RATE_OG$run4$Time,RATE_MA_same[[4]]$RATE_OG$run1$Time, RATE_MA_same[[4]]$RATE_OG$run2$Time, RATE_MA_same[[4]]$RATE_OG$run3$Time, RATE_MA_same[[4]]$RATE_OG$run4$Time,RATE_MA_same[[6]]$RATE_OG$run1$Time, RATE_MA_same[[6]]$RATE_OG$run2$Time, RATE_MA_same[[6]]$RATE_OG$run3$Time, RATE_MA_same[[6]]$RATE_OG$run4$Time,RATE_MA_same[[8]]$RATE_OG$run1$Time, RATE_MA_same[[8]]$RATE_OG$run2$Time, RATE_MA_same[[8]]$RATE_OG$run3$Time, RATE_MA_same[[8]]$RATE_OG$run4$Time,RATE_MA_same[[10]]$RATE_OG$run1$Time, RATE_MA_same[[10]]$RATE_OG$run2$Time, RATE_MA_same[[10]]$RATE_OG$run3$Time, RATE_MA_same[[10]]$RATE_OG$run4$Time,RATE_MA_same[[12]]$RATE_OG$run1$Time, RATE_MA_same[[12]]$RATE_OG$run2$Time, RATE_MA_same[[12]]$RATE_OG$run3$Time, RATE_MA_same[[12]]$RATE_OG$run4$Time,RATE_MA_same[[14]]$RATE_OG$run1$Time, RATE_MA_same[[14]]$RATE_OG$run2$Time, RATE_MA_same[[14]]$RATE_OG$run3$Time, RATE_MA_same[[14]]$RATE_OG$run4$Time,RATE_MA_same[[16]]$RATE_OG$run1$Time, RATE_MA_same[[16]]$RATE_OG$run2$Time, RATE_MA_same[[16]]$RATE_OG$run3$Time, RATE_MA_same[[16]]$RATE_OG$run4$Time,RATE_MA_same[[18]]$RATE_OG$run1$Time, RATE_MA_same[[18]]$RATE_OG$run2$Time, RATE_MA_same[[18]]$RATE_OG$run3$Time, RATE_MA_same[[18]]$RATE_OG$run4$Time,RATE_MA_same[[20]]$RATE_OG$run1$Time, RATE_MA_same[[20]]$RATE_OG$run2$Time, RATE_MA_same[[20]]$RATE_OG$run3$Time, RATE_MA_same[[20]]$RATE_OG$run4$Time)
-
-colnames(Same_OG_df) = time_names
-rownames(Same_OG_df) = "RATE_OG"
-
-Same_quad_df <- data.frame(RATE_MA_same[[2]]$RATE_quad$run1$Time, RATE_MA_same[[2]]$RATE_quad$run2$Time, RATE_MA_same[[2]]$RATE_quad$run3$Time, RATE_MA_same[[2]]$RATE_quad$run4$Time,RATE_MA_same[[4]]$RATE_quad$run1$Time, RATE_MA_same[[4]]$RATE_quad$run2$Time, RATE_MA_same[[4]]$RATE_quad$run3$Time, RATE_MA_same[[4]]$RATE_quad$run4$Time,RATE_MA_same[[6]]$RATE_quad$run1$Time, RATE_MA_same[[6]]$RATE_quad$run2$Time, RATE_MA_same[[6]]$RATE_quad$run3$Time, RATE_MA_same[[6]]$RATE_quad$run4$Time,RATE_MA_same[[8]]$RATE_quad$run1$Time, RATE_MA_same[[8]]$RATE_quad$run2$Time, RATE_MA_same[[8]]$RATE_quad$run3$Time, RATE_MA_same[[8]]$RATE_quad$run4$Time,RATE_MA_same[[10]]$RATE_quad$run1$Time, RATE_MA_same[[10]]$RATE_quad$run2$Time, RATE_MA_same[[10]]$RATE_quad$run3$Time, RATE_MA_same[[10]]$RATE_quad$run4$Time,RATE_MA_same[[12]]$RATE_quad$run1$Time, RATE_MA_same[[12]]$RATE_quad$run2$Time, RATE_MA_same[[12]]$RATE_quad$run3$Time, RATE_MA_same[[12]]$RATE_quad$run4$Time,RATE_MA_same[[14]]$RATE_quad$run1$Time, RATE_MA_same[[14]]$RATE_quad$run2$Time, RATE_MA_same[[14]]$RATE_quad$run3$Time, RATE_MA_same[[14]]$RATE_quad$run4$Time,RATE_MA_same[[16]]$RATE_quad$run1$Time, RATE_MA_same[[16]]$RATE_quad$run2$Time, RATE_MA_same[[16]]$RATE_quad$run3$Time, RATE_MA_same[[16]]$RATE_quad$run4$Time,RATE_MA_same[[18]]$RATE_quad$run1$Time, RATE_MA_same[[18]]$RATE_quad$run2$Time, RATE_MA_same[[18]]$RATE_quad$run3$Time, RATE_MA_same[[18]]$RATE_quad$run4$Time,RATE_MA_same[[20]]$RATE_quad$run1$Time, RATE_MA_same[[20]]$RATE_quad$run2$Time, RATE_MA_same[[20]]$RATE_quad$run3$Time, RATE_MA_same[[20]]$RATE_quad$run4$Time)
-
-colnames(Same_quad_df) = time_names
-rownames(Same_quad_df) = "RATE_quad"
-
-Same_quad2_df <- data.frame(RATE_MA_same[[2]]$RATE_quad2$run1$Time, RATE_MA_same[[2]]$RATE_quad2$run2$Time, RATE_MA_same[[2]]$RATE_quad2$run3$Time, RATE_MA_same[[2]]$RATE_quad2$run4$Time,RATE_MA_same[[4]]$RATE_quad2$run1$Time, RATE_MA_same[[4]]$RATE_quad2$run2$Time, RATE_MA_same[[4]]$RATE_quad2$run3$Time, RATE_MA_same[[4]]$RATE_quad2$run4$Time,RATE_MA_same[[6]]$RATE_quad2$run1$Time, RATE_MA_same[[6]]$RATE_quad2$run2$Time, RATE_MA_same[[6]]$RATE_quad2$run3$Time, RATE_MA_same[[6]]$RATE_quad2$run4$Time,RATE_MA_same[[8]]$RATE_quad2$run1$Time, RATE_MA_same[[8]]$RATE_quad2$run2$Time, RATE_MA_same[[8]]$RATE_quad2$run3$Time, RATE_MA_same[[8]]$RATE_quad2$run4$Time,RATE_MA_same[[10]]$RATE_quad2$run1$Time, RATE_MA_same[[10]]$RATE_quad2$run2$Time, RATE_MA_same[[10]]$RATE_quad2$run3$Time, RATE_MA_same[[10]]$RATE_quad2$run4$Time,RATE_MA_same[[12]]$RATE_quad2$run1$Time, RATE_MA_same[[12]]$RATE_quad2$run2$Time, RATE_MA_same[[12]]$RATE_quad2$run3$Time, RATE_MA_same[[12]]$RATE_quad2$run4$Time,RATE_MA_same[[14]]$RATE_quad2$run1$Time, RATE_MA_same[[14]]$RATE_quad2$run2$Time, RATE_MA_same[[14]]$RATE_quad2$run3$Time, RATE_MA_same[[14]]$RATE_quad2$run4$Time,RATE_MA_same[[16]]$RATE_quad2$run1$Time, RATE_MA_same[[16]]$RATE_quad2$run2$Time, RATE_MA_same[[16]]$RATE_quad2$run3$Time, RATE_MA_same[[16]]$RATE_quad2$run4$Time,RATE_MA_same[[18]]$RATE_quad2$run1$Time, RATE_MA_same[[18]]$RATE_quad2$run2$Time, RATE_MA_same[[18]]$RATE_quad2$run3$Time, RATE_MA_same[[18]]$RATE_quad2$run4$Time,RATE_MA_same[[20]]$RATE_quad2$run1$Time, RATE_MA_same[[20]]$RATE_quad2$run2$Time, RATE_MA_same[[20]]$RATE_quad2$run3$Time, RATE_MA_same[[20]]$RATE_quad2$run4$Time)
-
-colnames(Same_quad2_df) = time_names
-rownames(Same_quad2_df) = "RATE_quad2"
-
-Same_combo_df <- data.frame(RATE_MA_same[[2]]$RATE_combo$run1$Time, RATE_MA_same[[2]]$RATE_combo$run2$Time, RATE_MA_same[[2]]$RATE_combo$run3$Time, RATE_MA_same[[2]]$RATE_combo$run4$Time,RATE_MA_same[[4]]$RATE_combo$run1$Time, RATE_MA_same[[4]]$RATE_combo$run2$Time, RATE_MA_same[[4]]$RATE_combo$run3$Time, RATE_MA_same[[4]]$RATE_combo$run4$Time,RATE_MA_same[[6]]$RATE_combo$run1$Time, RATE_MA_same[[6]]$RATE_combo$run2$Time, RATE_MA_same[[6]]$RATE_combo$run3$Time, RATE_MA_same[[6]]$RATE_combo$run4$Time,RATE_MA_same[[8]]$RATE_combo$run1$Time, RATE_MA_same[[8]]$RATE_combo$run2$Time, RATE_MA_same[[8]]$RATE_combo$run3$Time, RATE_MA_same[[8]]$RATE_combo$run4$Time,RATE_MA_same[[10]]$RATE_combo$run1$Time, RATE_MA_same[[10]]$RATE_combo$run2$Time, RATE_MA_same[[10]]$RATE_combo$run3$Time, RATE_MA_same[[10]]$RATE_combo$run4$Time,RATE_MA_same[[12]]$RATE_combo$run1$Time, RATE_MA_same[[12]]$RATE_combo$run2$Time, RATE_MA_same[[12]]$RATE_combo$run3$Time, RATE_MA_same[[12]]$RATE_combo$run4$Time,RATE_MA_same[[14]]$RATE_combo$run1$Time, RATE_MA_same[[14]]$RATE_combo$run2$Time, RATE_MA_same[[14]]$RATE_combo$run3$Time, RATE_MA_same[[14]]$RATE_combo$run4$Time,RATE_MA_same[[16]]$RATE_combo$run1$Time, RATE_MA_same[[16]]$RATE_combo$run2$Time, RATE_MA_same[[16]]$RATE_combo$run3$Time, RATE_MA_same[[16]]$RATE_combo$run4$Time,RATE_MA_same[[18]]$RATE_combo$run1$Time, RATE_MA_same[[18]]$RATE_combo$run2$Time, RATE_MA_same[[18]]$RATE_combo$run3$Time, RATE_MA_same[[18]]$RATE_combo$run4$Time,RATE_MA_same[[20]]$RATE_combo$run1$Time, RATE_MA_same[[20]]$RATE_combo$run2$Time, RATE_MA_same[[20]]$RATE_combo$run3$Time, RATE_MA_same[[20]]$RATE_combo$run4$Time)
-
-colnames(Same_combo_df) = time_names
-rownames(Same_combo_df) = "RATE_combo"
-
-Same_mc_df <- data.frame(RATE_MA_same[[2]]$RATE_MC$run1$Time, RATE_MA_same[[2]]$RATE_MC$run2$Time, RATE_MA_same[[2]]$RATE_MC$run3$Time, RATE_MA_same[[2]]$RATE_MC$run4$Time,RATE_MA_same[[4]]$RATE_MC$run1$Time, RATE_MA_same[[4]]$RATE_MC$run2$Time, RATE_MA_same[[4]]$RATE_MC$run3$Time, RATE_MA_same[[4]]$RATE_MC$run4$Time,RATE_MA_same[[6]]$RATE_MC$run1$Time, RATE_MA_same[[6]]$RATE_MC$run2$Time, RATE_MA_same[[6]]$RATE_MC$run3$Time, RATE_MA_same[[6]]$RATE_MC$run4$Time,RATE_MA_same[[8]]$RATE_MC$run1$Time, RATE_MA_same[[8]]$RATE_MC$run2$Time, RATE_MA_same[[8]]$RATE_MC$run3$Time, RATE_MA_same[[8]]$RATE_MC$run4$Time,RATE_MA_same[[10]]$RATE_MC$run1$Time, RATE_MA_same[[10]]$RATE_MC$run2$Time, RATE_MA_same[[10]]$RATE_MC$run3$Time, RATE_MA_same[[10]]$RATE_MC$run4$Time,RATE_MA_same[[12]]$RATE_MC$run1$Time, RATE_MA_same[[12]]$RATE_MC$run2$Time, RATE_MA_same[[12]]$RATE_MC$run3$Time, RATE_MA_same[[12]]$RATE_MC$run4$Time,RATE_MA_same[[14]]$RATE_MC$run1$Time, RATE_MA_same[[14]]$RATE_MC$run2$Time, RATE_MA_same[[14]]$RATE_MC$run3$Time, RATE_MA_same[[14]]$RATE_MC$run4$Time,RATE_MA_same[[16]]$RATE_MC$run1$Time, RATE_MA_same[[16]]$RATE_MC$run2$Time, RATE_MA_same[[16]]$RATE_MC$run3$Time, RATE_MA_same[[16]]$RATE_MC$run4$Time,RATE_MA_same[[18]]$RATE_MC$run1$Time, RATE_MA_same[[18]]$RATE_MC$run2$Time, RATE_MA_same[[18]]$RATE_MC$run3$Time, RATE_MA_same[[18]]$RATE_MC$run4$Time,RATE_MA_same[[20]]$RATE_MC$run1$Time, RATE_MA_same[[20]]$RATE_MC$run2$Time, RATE_MA_same[[20]]$RATE_MC$run3$Time, RATE_MA_same[[20]]$RATE_MC$run4$Time)
-
-colnames(Same_mc_df) = time_names
-rownames(Same_mc_df) = "RATE_MC"
-
-RATEsame_times = rbind(Same_OG_df, Same_quad_df, Same_quad2_df, Same_combo_df, Same_mc_df)
-
-#Repeat for diff, overlap.
-
-Diff_OG_df <- data.frame(RATE_MA_diff[[2]]$RATE_OG$run1$Time, RATE_MA_diff[[2]]$RATE_OG$run2$Time, RATE_MA_diff[[2]]$RATE_OG$run3$Time, RATE_MA_diff[[2]]$RATE_OG$run4$Time,RATE_MA_diff[[4]]$RATE_OG$run1$Time, RATE_MA_diff[[4]]$RATE_OG$run2$Time, RATE_MA_diff[[4]]$RATE_OG$run3$Time, RATE_MA_diff[[4]]$RATE_OG$run4$Time,RATE_MA_diff[[6]]$RATE_OG$run1$Time, RATE_MA_diff[[6]]$RATE_OG$run2$Time, RATE_MA_diff[[6]]$RATE_OG$run3$Time, RATE_MA_diff[[6]]$RATE_OG$run4$Time,RATE_MA_diff[[8]]$RATE_OG$run1$Time, RATE_MA_diff[[8]]$RATE_OG$run2$Time, RATE_MA_diff[[8]]$RATE_OG$run3$Time, RATE_MA_diff[[8]]$RATE_OG$run4$Time,RATE_MA_diff[[10]]$RATE_OG$run1$Time, RATE_MA_diff[[10]]$RATE_OG$run2$Time, RATE_MA_diff[[10]]$RATE_OG$run3$Time, RATE_MA_diff[[10]]$RATE_OG$run4$Time,RATE_MA_diff[[12]]$RATE_OG$run1$Time, RATE_MA_diff[[12]]$RATE_OG$run2$Time, RATE_MA_diff[[12]]$RATE_OG$run3$Time, RATE_MA_diff[[12]]$RATE_OG$run4$Time,RATE_MA_diff[[14]]$RATE_OG$run1$Time, RATE_MA_diff[[14]]$RATE_OG$run2$Time, RATE_MA_diff[[14]]$RATE_OG$run3$Time, RATE_MA_diff[[14]]$RATE_OG$run4$Time,RATE_MA_diff[[16]]$RATE_OG$run1$Time, RATE_MA_diff[[16]]$RATE_OG$run2$Time, RATE_MA_diff[[16]]$RATE_OG$run3$Time, RATE_MA_diff[[16]]$RATE_OG$run4$Time,RATE_MA_diff[[18]]$RATE_OG$run1$Time, RATE_MA_diff[[18]]$RATE_OG$run2$Time, RATE_MA_diff[[18]]$RATE_OG$run3$Time, RATE_MA_diff[[18]]$RATE_OG$run4$Time,RATE_MA_diff[[20]]$RATE_OG$run1$Time, RATE_MA_diff[[20]]$RATE_OG$run2$Time, RATE_MA_diff[[20]]$RATE_OG$run3$Time, RATE_MA_diff[[20]]$RATE_OG$run4$Time)
-
-colnames(Diff_OG_df) = time_names
-rownames(Diff_OG_df) = "RATE_OG"
-
-Diff_quad_df <- data.frame(RATE_MA_diff[[2]]$RATE_quad$run1$Time, RATE_MA_diff[[2]]$RATE_quad$run2$Time, RATE_MA_diff[[2]]$RATE_quad$run3$Time, RATE_MA_diff[[2]]$RATE_quad$run4$Time,RATE_MA_diff[[4]]$RATE_quad$run1$Time, RATE_MA_diff[[4]]$RATE_quad$run2$Time, RATE_MA_diff[[4]]$RATE_quad$run3$Time, RATE_MA_diff[[4]]$RATE_quad$run4$Time,RATE_MA_diff[[6]]$RATE_quad$run1$Time, RATE_MA_diff[[6]]$RATE_quad$run2$Time, RATE_MA_diff[[6]]$RATE_quad$run3$Time, RATE_MA_diff[[6]]$RATE_quad$run4$Time,RATE_MA_diff[[8]]$RATE_quad$run1$Time, RATE_MA_diff[[8]]$RATE_quad$run2$Time, RATE_MA_diff[[8]]$RATE_quad$run3$Time, RATE_MA_diff[[8]]$RATE_quad$run4$Time,RATE_MA_diff[[10]]$RATE_quad$run1$Time, RATE_MA_diff[[10]]$RATE_quad$run2$Time, RATE_MA_diff[[10]]$RATE_quad$run3$Time, RATE_MA_diff[[10]]$RATE_quad$run4$Time,RATE_MA_diff[[12]]$RATE_quad$run1$Time, RATE_MA_diff[[12]]$RATE_quad$run2$Time, RATE_MA_diff[[12]]$RATE_quad$run3$Time, RATE_MA_diff[[12]]$RATE_quad$run4$Time,RATE_MA_diff[[14]]$RATE_quad$run1$Time, RATE_MA_diff[[14]]$RATE_quad$run2$Time, RATE_MA_diff[[14]]$RATE_quad$run3$Time, RATE_MA_diff[[14]]$RATE_quad$run4$Time,RATE_MA_diff[[16]]$RATE_quad$run1$Time, RATE_MA_diff[[16]]$RATE_quad$run2$Time, RATE_MA_diff[[16]]$RATE_quad$run3$Time, RATE_MA_diff[[16]]$RATE_quad$run4$Time,RATE_MA_diff[[18]]$RATE_quad$run1$Time, RATE_MA_diff[[18]]$RATE_quad$run2$Time, RATE_MA_diff[[18]]$RATE_quad$run3$Time, RATE_MA_diff[[18]]$RATE_quad$run4$Time,RATE_MA_diff[[20]]$RATE_quad$run1$Time, RATE_MA_diff[[20]]$RATE_quad$run2$Time, RATE_MA_diff[[20]]$RATE_quad$run3$Time, RATE_MA_diff[[20]]$RATE_quad$run4$Time)
-
-colnames(Diff_quad_df) = time_names
-rownames(Diff_quad_df) = "RATE_quad"
-
-Diff_quad2_df <- data.frame(RATE_MA_diff[[2]]$RATE_quad2$run1$Time, RATE_MA_diff[[2]]$RATE_quad2$run2$Time, RATE_MA_diff[[2]]$RATE_quad2$run3$Time, RATE_MA_diff[[2]]$RATE_quad2$run4$Time,RATE_MA_diff[[4]]$RATE_quad2$run1$Time, RATE_MA_diff[[4]]$RATE_quad2$run2$Time, RATE_MA_diff[[4]]$RATE_quad2$run3$Time, RATE_MA_diff[[4]]$RATE_quad2$run4$Time,RATE_MA_diff[[6]]$RATE_quad2$run1$Time, RATE_MA_diff[[6]]$RATE_quad2$run2$Time, RATE_MA_diff[[6]]$RATE_quad2$run3$Time, RATE_MA_diff[[6]]$RATE_quad2$run4$Time,RATE_MA_diff[[8]]$RATE_quad2$run1$Time, RATE_MA_diff[[8]]$RATE_quad2$run2$Time, RATE_MA_diff[[8]]$RATE_quad2$run3$Time, RATE_MA_diff[[8]]$RATE_quad2$run4$Time,RATE_MA_diff[[10]]$RATE_quad2$run1$Time, RATE_MA_diff[[10]]$RATE_quad2$run2$Time, RATE_MA_diff[[10]]$RATE_quad2$run3$Time, RATE_MA_diff[[10]]$RATE_quad2$run4$Time,RATE_MA_diff[[12]]$RATE_quad2$run1$Time, RATE_MA_diff[[12]]$RATE_quad2$run2$Time, RATE_MA_diff[[12]]$RATE_quad2$run3$Time, RATE_MA_diff[[12]]$RATE_quad2$run4$Time,RATE_MA_diff[[14]]$RATE_quad2$run1$Time, RATE_MA_diff[[14]]$RATE_quad2$run2$Time, RATE_MA_diff[[14]]$RATE_quad2$run3$Time, RATE_MA_diff[[14]]$RATE_quad2$run4$Time,RATE_MA_diff[[16]]$RATE_quad2$run1$Time, RATE_MA_diff[[16]]$RATE_quad2$run2$Time, RATE_MA_diff[[16]]$RATE_quad2$run3$Time, RATE_MA_diff[[16]]$RATE_quad2$run4$Time,RATE_MA_diff[[18]]$RATE_quad2$run1$Time, RATE_MA_diff[[18]]$RATE_quad2$run2$Time, RATE_MA_diff[[18]]$RATE_quad2$run3$Time, RATE_MA_diff[[18]]$RATE_quad2$run4$Time,RATE_MA_diff[[20]]$RATE_quad2$run1$Time, RATE_MA_diff[[20]]$RATE_quad2$run2$Time, RATE_MA_diff[[20]]$RATE_quad2$run3$Time, RATE_MA_diff[[20]]$RATE_quad2$run4$Time)
-
-colnames(Diff_quad2_df) = time_names
-rownames(Diff_quad2_df) = "RATE_quad2"
-
-Diff_combo_df <- data.frame(RATE_MA_diff[[2]]$RATE_combo$run1$Time, RATE_MA_diff[[2]]$RATE_combo$run2$Time, RATE_MA_diff[[2]]$RATE_combo$run3$Time, RATE_MA_diff[[2]]$RATE_combo$run4$Time,RATE_MA_diff[[4]]$RATE_combo$run1$Time, RATE_MA_diff[[4]]$RATE_combo$run2$Time, RATE_MA_diff[[4]]$RATE_combo$run3$Time, RATE_MA_diff[[4]]$RATE_combo$run4$Time,RATE_MA_diff[[6]]$RATE_combo$run1$Time, RATE_MA_diff[[6]]$RATE_combo$run2$Time, RATE_MA_diff[[6]]$RATE_combo$run3$Time, RATE_MA_diff[[6]]$RATE_combo$run4$Time,RATE_MA_diff[[8]]$RATE_combo$run1$Time, RATE_MA_diff[[8]]$RATE_combo$run2$Time, RATE_MA_diff[[8]]$RATE_combo$run3$Time, RATE_MA_diff[[8]]$RATE_combo$run4$Time,RATE_MA_diff[[10]]$RATE_combo$run1$Time, RATE_MA_diff[[10]]$RATE_combo$run2$Time, RATE_MA_diff[[10]]$RATE_combo$run3$Time, RATE_MA_diff[[10]]$RATE_combo$run4$Time,RATE_MA_diff[[12]]$RATE_combo$run1$Time, RATE_MA_diff[[12]]$RATE_combo$run2$Time, RATE_MA_diff[[12]]$RATE_combo$run3$Time, RATE_MA_diff[[12]]$RATE_combo$run4$Time,RATE_MA_diff[[14]]$RATE_combo$run1$Time, RATE_MA_diff[[14]]$RATE_combo$run2$Time, RATE_MA_diff[[14]]$RATE_combo$run3$Time, RATE_MA_diff[[14]]$RATE_combo$run4$Time,RATE_MA_diff[[16]]$RATE_combo$run1$Time, RATE_MA_diff[[16]]$RATE_combo$run2$Time, RATE_MA_diff[[16]]$RATE_combo$run3$Time, RATE_MA_diff[[16]]$RATE_combo$run4$Time,RATE_MA_diff[[18]]$RATE_combo$run1$Time, RATE_MA_diff[[18]]$RATE_combo$run2$Time, RATE_MA_diff[[18]]$RATE_combo$run3$Time, RATE_MA_diff[[18]]$RATE_combo$run4$Time,RATE_MA_diff[[20]]$RATE_combo$run1$Time, RATE_MA_diff[[20]]$RATE_combo$run2$Time, RATE_MA_diff[[20]]$RATE_combo$run3$Time, RATE_MA_diff[[20]]$RATE_combo$run4$Time)
-
-colnames(Diff_combo_df) = time_names
-rownames(Diff_combo_df) = "RATE_combo"
-
-Diff_mc_df <- data.frame(RATE_MA_diff[[2]]$RATE_MC$run1$Time, RATE_MA_diff[[2]]$RATE_MC$run2$Time, RATE_MA_diff[[2]]$RATE_MC$run3$Time, RATE_MA_diff[[2]]$RATE_MC$run4$Time,RATE_MA_diff[[4]]$RATE_MC$run1$Time, RATE_MA_diff[[4]]$RATE_MC$run2$Time, RATE_MA_diff[[4]]$RATE_MC$run3$Time, RATE_MA_diff[[4]]$RATE_MC$run4$Time,RATE_MA_diff[[6]]$RATE_MC$run1$Time, RATE_MA_diff[[6]]$RATE_MC$run2$Time, RATE_MA_diff[[6]]$RATE_MC$run3$Time, RATE_MA_diff[[6]]$RATE_MC$run4$Time,RATE_MA_diff[[8]]$RATE_MC$run1$Time, RATE_MA_diff[[8]]$RATE_MC$run2$Time, RATE_MA_diff[[8]]$RATE_MC$run3$Time, RATE_MA_diff[[8]]$RATE_MC$run4$Time,RATE_MA_diff[[10]]$RATE_MC$run1$Time, RATE_MA_diff[[10]]$RATE_MC$run2$Time, RATE_MA_diff[[10]]$RATE_MC$run3$Time, RATE_MA_diff[[10]]$RATE_MC$run4$Time,RATE_MA_diff[[12]]$RATE_MC$run1$Time, RATE_MA_diff[[12]]$RATE_MC$run2$Time, RATE_MA_diff[[12]]$RATE_MC$run3$Time, RATE_MA_diff[[12]]$RATE_MC$run4$Time,RATE_MA_diff[[14]]$RATE_MC$run1$Time, RATE_MA_diff[[14]]$RATE_MC$run2$Time, RATE_MA_diff[[14]]$RATE_MC$run3$Time, RATE_MA_diff[[14]]$RATE_MC$run4$Time,RATE_MA_diff[[16]]$RATE_MC$run1$Time, RATE_MA_diff[[16]]$RATE_MC$run2$Time, RATE_MA_diff[[16]]$RATE_MC$run3$Time, RATE_MA_diff[[16]]$RATE_MC$run4$Time,RATE_MA_diff[[18]]$RATE_MC$run1$Time, RATE_MA_diff[[18]]$RATE_MC$run2$Time, RATE_MA_diff[[18]]$RATE_MC$run3$Time, RATE_MA_diff[[18]]$RATE_MC$run4$Time,RATE_MA_diff[[20]]$RATE_MC$run1$Time, RATE_MA_diff[[20]]$RATE_MC$run2$Time, RATE_MA_diff[[20]]$RATE_MC$run3$Time, RATE_MA_diff[[20]]$RATE_MC$run4$Time)
-
-colnames(Diff_mc_df) = time_names
-rownames(Diff_mc_df) = "RATE_MC"
-
-RATEdiff_times = rbind(Diff_OG_df, Diff_quad_df, Diff_quad2_df, Diff_combo_df, Diff_mc_df)
-
-# And for overlap
-
-Overlap_OG_df <- data.frame(RATE_MA_overlap[[2]]$RATE_OG$run1$Time, RATE_MA_overlap[[2]]$RATE_OG$run2$Time, RATE_MA_overlap[[2]]$RATE_OG$run3$Time, RATE_MA_overlap[[2]]$RATE_OG$run4$Time,RATE_MA_overlap[[4]]$RATE_OG$run1$Time, RATE_MA_overlap[[4]]$RATE_OG$run2$Time, RATE_MA_overlap[[4]]$RATE_OG$run3$Time, RATE_MA_overlap[[4]]$RATE_OG$run4$Time,RATE_MA_overlap[[6]]$RATE_OG$run1$Time, RATE_MA_overlap[[6]]$RATE_OG$run2$Time, RATE_MA_overlap[[6]]$RATE_OG$run3$Time, RATE_MA_overlap[[6]]$RATE_OG$run4$Time,RATE_MA_overlap[[8]]$RATE_OG$run1$Time, RATE_MA_overlap[[8]]$RATE_OG$run2$Time, RATE_MA_overlap[[8]]$RATE_OG$run3$Time, RATE_MA_overlap[[8]]$RATE_OG$run4$Time,RATE_MA_overlap[[10]]$RATE_OG$run1$Time, RATE_MA_overlap[[10]]$RATE_OG$run2$Time, RATE_MA_overlap[[10]]$RATE_OG$run3$Time, RATE_MA_overlap[[10]]$RATE_OG$run4$Time,RATE_MA_overlap[[12]]$RATE_OG$run1$Time, RATE_MA_overlap[[12]]$RATE_OG$run2$Time, RATE_MA_overlap[[12]]$RATE_OG$run3$Time, RATE_MA_overlap[[12]]$RATE_OG$run4$Time,RATE_MA_overlap[[14]]$RATE_OG$run1$Time, RATE_MA_overlap[[14]]$RATE_OG$run2$Time, RATE_MA_overlap[[14]]$RATE_OG$run3$Time, RATE_MA_overlap[[14]]$RATE_OG$run4$Time,RATE_MA_overlap[[16]]$RATE_OG$run1$Time, RATE_MA_overlap[[16]]$RATE_OG$run2$Time, RATE_MA_overlap[[16]]$RATE_OG$run3$Time, RATE_MA_overlap[[16]]$RATE_OG$run4$Time,RATE_MA_overlap[[18]]$RATE_OG$run1$Time, RATE_MA_overlap[[18]]$RATE_OG$run2$Time, RATE_MA_overlap[[18]]$RATE_OG$run3$Time, RATE_MA_overlap[[18]]$RATE_OG$run4$Time,RATE_MA_overlap[[20]]$RATE_OG$run1$Time, RATE_MA_overlap[[20]]$RATE_OG$run2$Time, RATE_MA_overlap[[20]]$RATE_OG$run3$Time, RATE_MA_overlap[[20]]$RATE_OG$run4$Time)
-
-colnames(Overlap_OG_df) = time_names
-rownames(Overlap_OG_df) = "RATE_OG"
-
-Overlap_quad_df <- data.frame(RATE_MA_overlap[[2]]$RATE_quad$run1$Time, RATE_MA_overlap[[2]]$RATE_quad$run2$Time, RATE_MA_overlap[[2]]$RATE_quad$run3$Time, RATE_MA_overlap[[2]]$RATE_quad$run4$Time,RATE_MA_overlap[[4]]$RATE_quad$run1$Time, RATE_MA_overlap[[4]]$RATE_quad$run2$Time, RATE_MA_overlap[[4]]$RATE_quad$run3$Time, RATE_MA_overlap[[4]]$RATE_quad$run4$Time,RATE_MA_overlap[[6]]$RATE_quad$run1$Time, RATE_MA_overlap[[6]]$RATE_quad$run2$Time, RATE_MA_overlap[[6]]$RATE_quad$run3$Time, RATE_MA_overlap[[6]]$RATE_quad$run4$Time,RATE_MA_overlap[[8]]$RATE_quad$run1$Time, RATE_MA_overlap[[8]]$RATE_quad$run2$Time, RATE_MA_overlap[[8]]$RATE_quad$run3$Time, RATE_MA_overlap[[8]]$RATE_quad$run4$Time,RATE_MA_overlap[[10]]$RATE_quad$run1$Time, RATE_MA_overlap[[10]]$RATE_quad$run2$Time, RATE_MA_overlap[[10]]$RATE_quad$run3$Time, RATE_MA_overlap[[10]]$RATE_quad$run4$Time,RATE_MA_overlap[[12]]$RATE_quad$run1$Time, RATE_MA_overlap[[12]]$RATE_quad$run2$Time, RATE_MA_overlap[[12]]$RATE_quad$run3$Time, RATE_MA_overlap[[12]]$RATE_quad$run4$Time,RATE_MA_overlap[[14]]$RATE_quad$run1$Time, RATE_MA_overlap[[14]]$RATE_quad$run2$Time, RATE_MA_overlap[[14]]$RATE_quad$run3$Time, RATE_MA_overlap[[14]]$RATE_quad$run4$Time,RATE_MA_overlap[[16]]$RATE_quad$run1$Time, RATE_MA_overlap[[16]]$RATE_quad$run2$Time, RATE_MA_overlap[[16]]$RATE_quad$run3$Time, RATE_MA_overlap[[16]]$RATE_quad$run4$Time,RATE_MA_overlap[[18]]$RATE_quad$run1$Time, RATE_MA_overlap[[18]]$RATE_quad$run2$Time, RATE_MA_overlap[[18]]$RATE_quad$run3$Time, RATE_MA_overlap[[18]]$RATE_quad$run4$Time,RATE_MA_overlap[[20]]$RATE_quad$run1$Time, RATE_MA_overlap[[20]]$RATE_quad$run2$Time, RATE_MA_overlap[[20]]$RATE_quad$run3$Time, RATE_MA_overlap[[20]]$RATE_quad$run4$Time)
-
-colnames(Overlap_quad_df) = time_names
-rownames(Overlap_quad_df) = "RATE_quad"
-
-Overlap_quad2_df <- data.frame(RATE_MA_overlap[[2]]$RATE_quad2$run1$Time, RATE_MA_overlap[[2]]$RATE_quad2$run2$Time, RATE_MA_overlap[[2]]$RATE_quad2$run3$Time, RATE_MA_overlap[[2]]$RATE_quad2$run4$Time,RATE_MA_overlap[[4]]$RATE_quad2$run1$Time, RATE_MA_overlap[[4]]$RATE_quad2$run2$Time, RATE_MA_overlap[[4]]$RATE_quad2$run3$Time, RATE_MA_overlap[[4]]$RATE_quad2$run4$Time,RATE_MA_overlap[[6]]$RATE_quad2$run1$Time, RATE_MA_overlap[[6]]$RATE_quad2$run2$Time, RATE_MA_overlap[[6]]$RATE_quad2$run3$Time, RATE_MA_overlap[[6]]$RATE_quad2$run4$Time,RATE_MA_overlap[[8]]$RATE_quad2$run1$Time, RATE_MA_overlap[[8]]$RATE_quad2$run2$Time, RATE_MA_overlap[[8]]$RATE_quad2$run3$Time, RATE_MA_overlap[[8]]$RATE_quad2$run4$Time,RATE_MA_overlap[[10]]$RATE_quad2$run1$Time, RATE_MA_overlap[[10]]$RATE_quad2$run2$Time, RATE_MA_overlap[[10]]$RATE_quad2$run3$Time, RATE_MA_overlap[[10]]$RATE_quad2$run4$Time,RATE_MA_overlap[[12]]$RATE_quad2$run1$Time, RATE_MA_overlap[[12]]$RATE_quad2$run2$Time, RATE_MA_overlap[[12]]$RATE_quad2$run3$Time, RATE_MA_overlap[[12]]$RATE_quad2$run4$Time,RATE_MA_overlap[[14]]$RATE_quad2$run1$Time, RATE_MA_overlap[[14]]$RATE_quad2$run2$Time, RATE_MA_overlap[[14]]$RATE_quad2$run3$Time, RATE_MA_overlap[[14]]$RATE_quad2$run4$Time,RATE_MA_overlap[[16]]$RATE_quad2$run1$Time, RATE_MA_overlap[[16]]$RATE_quad2$run2$Time, RATE_MA_overlap[[16]]$RATE_quad2$run3$Time, RATE_MA_overlap[[16]]$RATE_quad2$run4$Time,RATE_MA_overlap[[18]]$RATE_quad2$run1$Time, RATE_MA_overlap[[18]]$RATE_quad2$run2$Time, RATE_MA_overlap[[18]]$RATE_quad2$run3$Time, RATE_MA_overlap[[18]]$RATE_quad2$run4$Time,RATE_MA_overlap[[20]]$RATE_quad2$run1$Time, RATE_MA_overlap[[20]]$RATE_quad2$run2$Time, RATE_MA_overlap[[20]]$RATE_quad2$run3$Time, RATE_MA_overlap[[20]]$RATE_quad2$run4$Time)
-
-colnames(Overlap_quad2_df) = time_names
-rownames(Overlap_quad2_df) = "RATE_quad2"
-
-Overlap_combo_df <- data.frame(RATE_MA_overlap[[2]]$RATE_combo$run1$Time, RATE_MA_overlap[[2]]$RATE_combo$run2$Time, RATE_MA_overlap[[2]]$RATE_combo$run3$Time, RATE_MA_overlap[[2]]$RATE_combo$run4$Time,RATE_MA_overlap[[4]]$RATE_combo$run1$Time, RATE_MA_overlap[[4]]$RATE_combo$run2$Time, RATE_MA_overlap[[4]]$RATE_combo$run3$Time, RATE_MA_overlap[[4]]$RATE_combo$run4$Time,RATE_MA_overlap[[6]]$RATE_combo$run1$Time, RATE_MA_overlap[[6]]$RATE_combo$run2$Time, RATE_MA_overlap[[6]]$RATE_combo$run3$Time, RATE_MA_overlap[[6]]$RATE_combo$run4$Time,RATE_MA_overlap[[8]]$RATE_combo$run1$Time, RATE_MA_overlap[[8]]$RATE_combo$run2$Time, RATE_MA_overlap[[8]]$RATE_combo$run3$Time, RATE_MA_overlap[[8]]$RATE_combo$run4$Time,RATE_MA_overlap[[10]]$RATE_combo$run1$Time, RATE_MA_overlap[[10]]$RATE_combo$run2$Time, RATE_MA_overlap[[10]]$RATE_combo$run3$Time, RATE_MA_overlap[[10]]$RATE_combo$run4$Time,RATE_MA_overlap[[12]]$RATE_combo$run1$Time, RATE_MA_overlap[[12]]$RATE_combo$run2$Time, RATE_MA_overlap[[12]]$RATE_combo$run3$Time, RATE_MA_overlap[[12]]$RATE_combo$run4$Time,RATE_MA_overlap[[14]]$RATE_combo$run1$Time, RATE_MA_overlap[[14]]$RATE_combo$run2$Time, RATE_MA_overlap[[14]]$RATE_combo$run3$Time, RATE_MA_overlap[[14]]$RATE_combo$run4$Time,RATE_MA_overlap[[16]]$RATE_combo$run1$Time, RATE_MA_overlap[[16]]$RATE_combo$run2$Time, RATE_MA_overlap[[16]]$RATE_combo$run3$Time, RATE_MA_overlap[[16]]$RATE_combo$run4$Time,RATE_MA_overlap[[18]]$RATE_combo$run1$Time, RATE_MA_overlap[[18]]$RATE_combo$run2$Time, RATE_MA_overlap[[18]]$RATE_combo$run3$Time, RATE_MA_overlap[[18]]$RATE_combo$run4$Time,RATE_MA_overlap[[20]]$RATE_combo$run1$Time, RATE_MA_overlap[[20]]$RATE_combo$run2$Time, RATE_MA_overlap[[20]]$RATE_combo$run3$Time, RATE_MA_overlap[[20]]$RATE_combo$run4$Time)
-
-colnames(Overlap_combo_df) = time_names
-rownames(Overlap_combo_df) = "RATE_combo"
-
-Overlap_mc_df <- data.frame(RATE_MA_overlap[[2]]$RATE_MC$run1$Time, RATE_MA_overlap[[2]]$RATE_MC$run2$Time, RATE_MA_overlap[[2]]$RATE_MC$run3$Time, RATE_MA_overlap[[2]]$RATE_MC$run4$Time,RATE_MA_overlap[[4]]$RATE_MC$run1$Time, RATE_MA_overlap[[4]]$RATE_MC$run2$Time, RATE_MA_overlap[[4]]$RATE_MC$run3$Time, RATE_MA_overlap[[4]]$RATE_MC$run4$Time,RATE_MA_overlap[[6]]$RATE_MC$run1$Time, RATE_MA_overlap[[6]]$RATE_MC$run2$Time, RATE_MA_overlap[[6]]$RATE_MC$run3$Time, RATE_MA_overlap[[6]]$RATE_MC$run4$Time,RATE_MA_overlap[[8]]$RATE_MC$run1$Time, RATE_MA_overlap[[8]]$RATE_MC$run2$Time, RATE_MA_overlap[[8]]$RATE_MC$run3$Time, RATE_MA_overlap[[8]]$RATE_MC$run4$Time,RATE_MA_overlap[[10]]$RATE_MC$run1$Time, RATE_MA_overlap[[10]]$RATE_MC$run2$Time, RATE_MA_overlap[[10]]$RATE_MC$run3$Time, RATE_MA_overlap[[10]]$RATE_MC$run4$Time,RATE_MA_overlap[[12]]$RATE_MC$run1$Time, RATE_MA_overlap[[12]]$RATE_MC$run2$Time, RATE_MA_overlap[[12]]$RATE_MC$run3$Time, RATE_MA_overlap[[12]]$RATE_MC$run4$Time,RATE_MA_overlap[[14]]$RATE_MC$run1$Time, RATE_MA_overlap[[14]]$RATE_MC$run2$Time, RATE_MA_overlap[[14]]$RATE_MC$run3$Time, RATE_MA_overlap[[14]]$RATE_MC$run4$Time,RATE_MA_overlap[[16]]$RATE_MC$run1$Time, RATE_MA_overlap[[16]]$RATE_MC$run2$Time, RATE_MA_overlap[[16]]$RATE_MC$run3$Time, RATE_MA_overlap[[16]]$RATE_MC$run4$Time,RATE_MA_overlap[[18]]$RATE_MC$run1$Time, RATE_MA_overlap[[18]]$RATE_MC$run2$Time, RATE_MA_overlap[[18]]$RATE_MC$run3$Time, RATE_MA_overlap[[18]]$RATE_MC$run4$Time,RATE_MA_overlap[[20]]$RATE_MC$run1$Time, RATE_MA_overlap[[20]]$RATE_MC$run2$Time, RATE_MA_overlap[[20]]$RATE_MC$run3$Time, RATE_MA_overlap[[20]]$RATE_MC$run4$Time)
-
-colnames(Overlap_mc_df) = time_names
-rownames(Overlap_mc_df) = "RATE_MC"
-
-RATEoverlap_times = rbind(Overlap_OG_df, Overlap_quad_df, Overlap_quad2_df, Overlap_combo_df, Overlap_mc_df)
-
-```
-
-Now we can plot the times comparatively. Again, skip the lengthy code. Analysis at the end.
-
-```{r, include= FALSE, fig.height=15, fig.width=20}
-#Plot same times
-p_sameOG <- Same_OG_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_samequad <- Same_quad_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_samequad2 <- Same_quad2_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_samecombo <- Same_combo_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_sameMC <- Same_mc_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-same_nomc <- ggplot() + 
-  geom_count(data=p_sameOG, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_OG'), alpha=0.5) +
-  geom_count(data=p_samequad, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_quad'), alpha=0.5) +
-  geom_count(data=p_samequad2, aes(x=Runs, y = Time_In_Seconds, color='RATE_quad2'), alpha=0.5) +
-  geom_count(data=p_samecombo, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_combo'), alpha=0.5) +
-  scale_x_discrete(limits=time_names) + 
-  labs(color="Legend")+
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE same Times without RATE_MC (all runs)")
-
-same_mc <- same_nomc +
-  geom_count(data=p_sameMC, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_MC'), alpha=0.5) +
-  ggtitle("RATE same Times (all runs)")
-
-#Diff Rates
-
-p_OG <- Diff_OG_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_quad <- Diff_quad_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_quad2 <- Diff_quad2_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_combo <- Diff_combo_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_MC <- Diff_mc_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-diff_nomc <- ggplot() + 
-  geom_count(data=p_OG, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_OG'), alpha=0.5) +
-  geom_count(data=p_quad, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_quad'), alpha=0.5) +
-  geom_count(data=p_quad2, aes(x=Runs, y = Time_In_Seconds, color='RATE_quad2'), alpha=0.5) +
-  geom_count(data=p_combo, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_combo'), alpha=0.5) +
-  scale_x_discrete(limits=time_names) + 
-  labs(color="Legend")+
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE diff Times without RATE_MC (all runs)")
-
-diff_mc <- diff_nomc +
-  geom_count(data=p_MC, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_MC'), alpha=0.5) +
-  ggtitle("RATE diff Times (all runs)")
-
-
-#Overlap
-p_OG <- Overlap_OG_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_quad <- Overlap_quad_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_quad2 <- Overlap_quad2_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_combo <- Overlap_combo_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-p_MC <- Overlap_mc_df %>% select(time_names) %>%
-  pivot_longer(., cols = time_names, names_to = "Runs", values_to = "Time_In_Seconds")
-
-overlap_nomc <- ggplot() + 
-  geom_count(data=p_OG, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_OG'), alpha=0.5) +
-  geom_count(data=p_quad, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_quad'), alpha=0.5) +
-  geom_count(data=p_quad2, aes(x=Runs, y = Time_In_Seconds, color='RATE_quad2'), alpha=0.5) +
-  geom_count(data=p_combo, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_combo'), alpha=0.5) +
-  scale_x_discrete(limits=time_names) + 
-  labs(color="Legend")+
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE overlap Times without RATE_MC (all runs)")
-
-overlap_mc <- overlap_nomc +
-  geom_count(data=p_MC, aes(x=Runs, y = Time_In_Seconds, color = 'RATE_MC'), alpha=0.5) +
-  ggtitle("RATE overlap Times (all runs)")
-
-grid.arrange(same_nomc, same_mc, diff_nomc, diff_mc, overlap_nomc, overlap_mc, nrow=3)
-```
-
-As you can see, regardless of the manner in which the data was simulated (which makes sense), the 'RATE_OG' and 'RATE_quad2' (which is the quad function that just calculates everything directly and does not take out the linear effect) work the fastest. 'RATE_combo' and 'RATE_quad' work about twice as slower. One the other hand, 'RATE_MC' takes a very long time to do that first calculation, because that's when we have to resample a function 'g.rep' to match the size of 'f.rep' for every SNP that we have. Once that part is done, the rest of the RATE calculations are just as long as 'RATE_OG'. It is worth noting that I could not figure out how to parallelize this no matter how much I tried without losing data (even in Linux it was throwing errors). For the sake of getting the data, I took it out. But this still means that, at best, we would have a time of around $190/32 \approx 5.94$ seconds. So still by far the longest one. 
 
 Hopefully this sheds light on some things
