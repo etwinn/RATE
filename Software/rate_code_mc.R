@@ -1,8 +1,8 @@
 # THIS IS MARYCLARE'S CODE FOR STUFF, LOOK THROUGH AND MAKE IT WORK.
-# RATE_MC_Test.R
+# Emily is modifying on Oct 19 2021.
+# rate_code_mc.R
 # Same as the tutorial but with added sampling to get the g value as needed for
 # running MaryClare's suggestion for RATE.
-# September 7, 2021
 
 
 ### Clear Environment ###
@@ -19,10 +19,10 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("~/Dropbox/Research/Crawford/RATE2.R") #Changing path for etwin PC.
+source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
-# sourceCpp("~/Dropbox/Research/Crawford/BAKRGibbs.cpp")
+sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 
 # Data simulation - want 10 variables, 3 pairwise interactions. Using Lorin's code from 
 # Centrality_Tutorial.R with some changes to make it our scale. Still going to use Gaussian process.
@@ -77,15 +77,7 @@ colnames(X) = paste("SNP",1:ncol(X),sep="")
 #Gaussian kernel can be specified as k(u,v) = exp{||uâv||^2/2h^2}.
 
 ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-# Kn = GaussKernel(t(X)); diag(Kn)=1 # 
-h <- 1
-B <- matrix(nrow = n, ncol = n)
-for (i in 1:n) {
-  cat("i=", i, "\n")
-  for (j in 1:n) {
-    B[i, j] <- exp(-h/(p)*sum((X[i, ]-X[j, ])^2))
-  }
-}
+B = GaussKernel(t(X)); diag(B)=1 # 
 
 ### Center and Scale K_tilde ###
 # v=matrix(1, n, 1)
@@ -117,20 +109,14 @@ registerDoParallel(cores=cores)
 #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
 delta = matrix(0,nrow=sample_size, ncol=p)
 for(k in 1:p){
-  cat("k=", k, "\n")
+  #cat("k=", k, "\n")
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
   new_X = X 
   new_X[,k] <- new_X[, k]+1
   # MCG: Need to be careful here - the predictor only takes on values 0-2, may want to be careful
   # Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
-  Cj <- Dj <- matrix(nrow = n, ncol = n)
-  for (i in 1:n) {
-    # cat("i=", i, "\n")
-    for (j in 1:n) {
-      Dj[i, j] <- exp(-h/(p)*sum((new_X[i, ]-new_X[j, ])^2))
-      Cj[i, j] <- exp(-h/(p)*sum((X[i, ]-new_X[j, ])^2))
-    }
-  }
+  Cj = GaussCoKernel(t(X), t(new_X)); diag(Cj)=1
+  Dj = B
   
   CtAiy <- t(Cj) %*% Aiy
   CtAiC <- t(Cj) %*% solve(A, Cj)
@@ -150,8 +136,8 @@ for(k in 1:p){
   delta[, k] <- rowMeans(del)
   
   # ### Center and Scale K_tilde ###
-  v=matrix(1, n, 1)
-  M=diag(n)-v%*%t(v)/n
+  #v=matrix(1, n, 1)
+  #M=diag(n)-v%*%t(v)/n
   # # Kn_g=M%*%Kn_g%*%M
   # # Kn_g=Kn_g/mean(diag(Kn_g))
   # #g #Don't need to sample, just get the expected value.
