@@ -84,10 +84,10 @@ sigma2 = 1e-3
 
 ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
 B = GaussKernel(t(X)); diag(B)=1 #
-A <- B + sigma2*diag
-Ainv <- solve(A)
-Aiy <- solve(A,y)
-AiB <- solve(A,B)
+A <- B + sigma2*diag(1,nrow=n,ncol=n)
+Ainv <- nearPD(solve(A))$mat
+Aiy <- Ainv%*%y
+AiB <- Ainv%*%B
 BAiy <- B %*% Aiy
 IAiB <- (diag(1,nrow=n, ncol=n)-AiB)
 BIAiB <- B%*%IAiB
@@ -99,12 +99,12 @@ registerDoParallel(cores=cores)
 #Calculate Delta, which ends up being p x sample_size matrix (add dopar instead of do once off windows)
 
 #delta = foreach(j = 1:p, .combine='rbind')%do%{
-delta = matrix(0,nrow=sample_size, ncol=p)
+delta = matrix(0,nrow=n, ncol=p) #nrow=sample_size
 for(k in 1:p){
   #cat("k=", k, "\n")
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
   new_X = X 
-  new_X[,k] <- new_X[, k]+1
+  new_X[,k] <- new_X[,k]+1
   # MCG: Need to be careful here - the predictor only takes on values 0-2, may want to be careful
   Cj = GaussCoKernel(t(X), t(new_X)); diag(Cj)=1
   
@@ -112,17 +112,17 @@ for(k in 1:p){
   AiC <- Ainv%*%Cj
   del_cov = nearPD(+IAiB-t(Cj)%*%(AiC +2*IAiB))
   
-  #del = rmvnorm(sample_size, BAiy-CtAiy, as.matrix(del_cov$mat))
-  CmBAiC = IAiB%*%Cj
-  BmCtAiC = B-t(Cj)%*%AiC
-  V = as.matrix(nearPD(rbind(cbind(BIAiB, CmBAiC),
-                             cbind(CmBAiC, BmCtAiC)))$mat)
+  del = rmvnorm(sample_size, BAiy-CtAiy, as.matrix(del_cov$mat))
+  #CmBAiC = IAiB%*%Cj
+  #BmCtAiC = B-t(Cj)%*%AiC
+  #V = as.matrix(nearPD(rbind(cbind(BIAiB, CmBAiC),
+                            # cbind(CmBAiC, BmCtAiC)))$mat)
   
-  fghat.rep = rmvnorm(sample_size,c(BAiy, CtAiy), V)
-  del <- t(apply(fghat.rep, 1, function(fg) {
-   fg[length(fg)/2 + 1:(length(fg)/2)] - fg[1:(length(fg)/2)]
-  }))
-  delta[, k] <- rowMeans(del)
+  #fghat.rep = rmvnorm(sample_size,c(BAiy, CtAiy), V)
+  #del <- t(apply(fghat.rep, 1, function(fg) {
+   #fg[length(fg)/2 + 1:(length(fg)/2)] - fg[1:(length(fg)/2)]
+  #}))
+  delta[, k] <- colMeans(del)
 }
 
 ### Run the RATE Function ###
