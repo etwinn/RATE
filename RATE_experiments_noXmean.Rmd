@@ -114,25 +114,29 @@ OGsame <- ggplot() +
   geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE OG Effect Sizes (same)")
+  ggtitle("RATE OG Effect Sizes (same)")+
+  ylim(0,0.9)
 
 OGdiff <- ggplot() +
   geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE OG Effect Sizes (diff)")
+  ggtitle("RATE OG Effect Sizes (diff)")+
+  ylim(0,0.9)
   
 OGoverlap <- ggplot() + 
     geom_count(data=p_overlap, aes(x=SNPS,y=RATES),  alpha=0.8) +
     scale_x_discrete(limits=snps) + 
     theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-    ggtitle("RATE OG Effect Sizes (overlap)")
+    ggtitle("RATE OG Effect Sizes (overlap)")+
+    ylim(0,0.9)
 
 OGinteract <- ggplot() + 
     geom_count(data=p_interact, aes(x=SNPS,y=RATES),  alpha=0.8) +
     scale_x_discrete(limits=snps) + 
     theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-    ggtitle("RATE OG Effect Sizes (interact)")
+    ggtitle("RATE OG Effect Sizes (interact)") +
+    ylim(0,0.9)
 
 #plot the quad 
 
@@ -152,25 +156,29 @@ Quadsame <- ggplot() +
   geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad Effect Sizes (same)")
+  ggtitle("RATE Quad Effect Sizes (same)")+
+  ylim(0,0.9)
 
 Quaddiff <- ggplot()+
   geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad Effect Sizes (diff)")
+  ggtitle("RATE Quad Effect Sizes (diff)")+
+  ylim(0,0.9)
 
 Quadoverlap <- ggplot()+
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad Effect Sizes (overlap)")
+  ggtitle("RATE Quad Effect Sizes (overlap)")+
+  ylim(0,0.9)
 
 Quadinteract <- ggplot()+
   geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad Effect Sizes (interact)")
+  ggtitle("RATE Quad Effect Sizes (interact)")+
+  ylim(0,0.9)
 
 #plot the quad2
 
@@ -191,25 +199,29 @@ Quad2same <- ggplot() +
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad2 Effect Sizes (same)")
+  ggtitle("RATE Quad2 Effect Sizes (same)")+
+  ylim(0,0.9)
 
 Quad2diff <- ggplot()+
   geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad2 Effect Sizes (diff)")
+  ggtitle("RATE Quad2 Effect Sizes (diff)")+
+  ylim(0,0.9)
 
 Quad2overlap <- ggplot()+
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad2 Effect Sizes (overlap)")
+  ggtitle("RATE Quad2 Effect Sizes (overlap)")+
+  ylim(0,0.9)
 
 Quad2interact <- ggplot()+
   geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Quad2 Effect Sizes (interact)")
+  ggtitle("RATE Quad2 Effect Sizes (interact)")+
+  ylim(0,0.9)
 
 #plot the combo
 
@@ -229,25 +241,29 @@ Combosame <- ggplot() +
   geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Combo Effect Sizes (same)")
+  ggtitle("RATE Combo Effect Sizes (same)")+
+  ylim(0,0.9)
 
 Combodiff <- ggplot()+
   geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Combo Effect Sizes (diff)")
+  ggtitle("RATE Combo Effect Sizes (diff)")+
+  ylim(0,0.9)
 
 Combooverlap <- ggplot() + 
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Combo Effect Sizes (overlap)")
+  ggtitle("RATE Combo Effect Sizes (overlap)")+
+  ylim(0,0.9)
 
 Combointeract <- ggplot() + 
   geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE Combo Effect Sizes (interact)")
+  ggtitle("RATE Combo Effect Sizes (interact)")+
+  ylim(0,0.9)
 
 #plot the MC
 
@@ -267,29 +283,34 @@ MCsame <- ggplot() +
   geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (same)")
+  ggtitle("RATE MC Effect Sizes (same)")+
+  ylim(0,0.9)
 
 MCdiff <- ggplot() + 
   geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (diff)")
+  ggtitle("RATE MC Effect Sizes (diff)")+
+  ylim(0,0.9)
 
 MCoverlap <- ggplot() + 
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (overlap)")
+  ggtitle("RATE MC Effect Sizes (overlap)")+
+  ylim(0,0.9)
 
 MCinteract <- ggplot() + 
   geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (interact)")
+  ggtitle("RATE MC Effect Sizes (interact)")+
+  ylim(0,0.9)
 
 
 #Combine all plots below in 2 x 3 matrix
 grid.arrange(OGsame, OGdiff, OGoverlap, OGinteract, Quadsame, Quaddiff, Quadoverlap, Quadinteract, Quad2same, Quad2diff, Quad2overlap, Quad2interact, Combosame, Combodiff, Combooverlap, Combointeract, MCsame, MCdiff, MCoverlap, MCinteract, nrow=5)
+#grid.arrange(OGsame, OGdiff, OGoverlap, Quadsame, Quaddiff, Quadoverlap, Quad2same, Quad2diff, Quad2overlap, Combosame, Combodiff, Combooverlap, MCsame, MCdiff, MCoverlap, nrow=5)
 ```
 ## ROC's of RATE Values (plotted)
 
@@ -362,14 +383,14 @@ PP = cbind(power.sameOG, power.sameQuad, power.sameQuad2, power.sameCombo, power
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", main="Same", ylim = c(0,1),xlim = c(0,1),bty = "n")
 lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
 lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
 lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
 lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
 legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
 abline(a=0, b=1,col="black",lwd = 2)
-dev.off()
+#dev.off()
 
 ```
 ### Different
@@ -410,14 +431,14 @@ PP = cbind(power.diffOG, power.diffQuad, power.diffQuad2, power.diffCombo, power
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", main="Different", ylim = c(0,1),xlim = c(0,1),bty = "n")
 lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
 lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
 lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
 lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
 legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
 abline(a=0, b=1,col="black",lwd = 2)
-dev.off()
+#dev.off()
 ```
 ### Overlap
 
@@ -458,14 +479,14 @@ PP = cbind(power.overlapOG, power.overlapQuad, power.overlapQuad2, power.overlap
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", main = "Overlap", ylim = c(0,1),xlim = c(0,1),bty = "n")
 lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
 lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
 lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
 lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
 legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
 abline(a=0, b=1,col="black",lwd = 2)
-dev.off()
+#dev.off()
 
 ```
 
@@ -508,57 +529,53 @@ PP = cbind(power.interactOG, power.interactQuad, power.interactQuad2, power.inte
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate", main="Interact", ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
 lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
 lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
 lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
 lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
 legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
 abline(a=0, b=1,col="black",lwd = 2)
-dev.off()
+#dev.off()
+
+```
+# Time Trials
+Need to extract the times for each thing and combine into data frames.
+
+```{r}
+#Same first
+
+SAME_OG_Timedf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_OG"]][["Time"]]))))
+SAME_quad_Timedf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_quad"]][["Time"]]))))
+SAME_quad2_Timedf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_quad2"]][["Time"]]))))
+SAME_combo_Timedf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_combo"]][["Time"]]))))
+SAME_MC_Timedf <- as.data.frame(t(as.data.frame(map(RATE_MA_same[grep("RATE", names(RATE_MA_same))], ~.[["RATE_MC"]][["Time"]]))))
+
+#Diff next
+DIFF_OG_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_OG"]][["RATE"]]))))
+DIFF_quad_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_quad"]][["RATE"]]))))
+DIFF_quad2_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_quad2"]][["RATE"]]))))
+DIFF_combo_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_combo"]][["RATE"]]))))
+DIFF_MC_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_diff[grep("RATE", names(RATE_MA_diff))], ~.[["RATE_MC"]][["RATE"]]))))
+
+#Overlap after
+OVERLAP_OG_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_OG"]][["RATE"]]))))
+OVERLAP_quad_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_quad"]][["RATE"]]))))
+OVERLAP_quad2_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_quad2"]][["RATE"]]))))
+OVERLAP_combo_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_combo"]][["RATE"]]))))
+OVERLAP_MC_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_overlap[grep("RATE", names(RATE_MA_overlap))], ~.[["RATE_MC"]][["RATE"]]))))
+
+#Interact last
+INTERACT_OG_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_OG"]][["RATE"]]))))
+INTERACT_quad_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_quad"]][["RATE"]]))))
+INTERACT_quad2_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_quad2"]][["RATE"]]))))
+INTERACT_combo_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_combo"]][["RATE"]]))))
+INTERACT_MC_ESdf <- as.data.frame(t(as.data.frame(map(RATE_MA_interact[grep("RATE", names(RATE_MA_interact))], ~.[["RATE_MC"]][["RATE"]]))))
+
 
 ```
 
-```{r, include = FALSE, fig.height=15, fig.width=20}
 
-#THIS is SNP by SNP comparison. Don't need.
-
-same_compare = data.frame("RATE_OG"=SAME_OG_ESdf$SNP24, "RATE_quad"=SAME_quad_ESdf$SNP24, "RATE_quad2" = SAME_quad2_ESdf$SNP24, "RATE_combo"= SAME_combo_ESdf$SNP24, "RATE_MC" = SAME_MC_ESdf$SNP24)
-
-same <- ggplot(same_compare) + 
-  geom_point(aes(x=RATE_OG, y=RATE_quad, color = "RATE_quad")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_quad2, color = "RATE_quad2")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_combo, color = "RATE_combo")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_MC, color = "RATE_MC")) +
-  labs(color = "Legend") +
-  geom_abline(slope=1, intercept=0) +
-  ggtitle("RATEs for SNP 24 (same)")
-  
-
-diff_compare = data.frame("RATE_OG"=DIFF_OG_ESdf$SNP24, "RATE_quad"=DIFF_quad_ESdf$SNP24, "RATE_quad2" = DIFF_quad2_ESdf$SNP24, "RATE_combo"= DIFF_combo_ESdf$SNP24, "RATE_MC" = DIFF_MC_ESdf$SNP24)
-
-diff <- ggplot(diff_compare) + 
-  geom_point(aes(x=RATE_OG, y=RATE_quad, color = "RATE_quad")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_quad2, color = "RATE_quad2")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_combo, color = "RATE_combo")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_MC, color = "RATE_MC")) +
-  labs(color = "Legend") +
-  geom_abline(slope=1, intercept=0) +
-  ggtitle("RATEs for SNP 24 (diff)")
-
-overlap_compare = data.frame("RATE_OG"=OVERLAP_OG_ESdf$SNP24, "RATE_quad"=OVERLAP_quad_ESdf$SNP24, "RATE_quad2" = OVERLAP_quad2_ESdf$SNP24, "RATE_combo"= OVERLAP_combo_ESdf$SNP24, "RATE_MC" = OVERLAP_MC_ESdf$SNP24)
-
-overlap <- ggplot(overlap_compare) + 
-  geom_point(aes(x=RATE_OG, y=RATE_quad, color = "RATE_quad")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_quad2, color = "RATE_quad2")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_combo, color = "RATE_combo")) + 
-  geom_point(aes(x=RATE_OG, y=RATE_MC, color = "RATE_MC")) +
-  labs(color = "Legend") +
-  geom_abline(slope=1, intercept=0) +
-  ggtitle("RATEs for SNP 24 (overlap)")
-
-grid.arrange(same, diff, overlap, nrow=2)
+```{r}
+plot(as.numeric(substr(SAME_OG_Timedf$V1, 1, nchar(SAME_OG_Timedf$V1)-5)), as.numeric(substr(SAME_MC_Timedf$V1, 1, nchar(SAME_MC_Timedf$V1)-5)), xlim=c(6,8), ylim=c(300,400))
 ```
-
-
-Hopefully this sheds light on some things

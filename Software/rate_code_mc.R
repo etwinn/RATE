@@ -109,20 +109,18 @@ registerDoParallel(cores=cores)
 #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
 delta = matrix(0,nrow=sample_size, ncol=p)
 for(k in 1:p){
-  #cat("k=", k, "\n")
+  cat("k=", k, "\n")
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
   new_X = X 
   new_X[,k] <- new_X[, k]+1
   # MCG: Need to be careful here - the predictor only takes on values 0-2, may want to be careful
   # Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
-  Cj = GaussCoKernel(t(X), t(new_X)); diag(Cj)=1
-  Dj = B
-  
+  Cj <- GaussCoKernel(t(X), t(new_X))
   CtAiy <- t(Cj) %*% Aiy
   CtAiC <- t(Cj) %*% solve(A, Cj)
   CtAiB <- t(Cj) %*% solve(A, B)
   BAiC <- B %*% solve(A, Cj)
-  DmCtAiC <- Dj - CtAiC
+  DmCtAiC <- B - CtAiC
   CtmCtAiB <- t(Cj) - CtAiB
   CmBAiC <- Cj - BAiC
   # fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
@@ -136,8 +134,8 @@ for(k in 1:p){
   delta[, k] <- rowMeans(del)
   
   # ### Center and Scale K_tilde ###
-  #v=matrix(1, n, 1)
-  #M=diag(n)-v%*%t(v)/n
+  v=matrix(1, n, 1)
+  M=diag(n)-v%*%t(v)/n
   # # Kn_g=M%*%Kn_g%*%M
   # # Kn_g=Kn_g/mean(diag(Kn_g))
   # #g #Don't need to sample, just get the expected value.
@@ -149,6 +147,7 @@ for(k in 1:p){
   # delta[,j] = t(rowMeans(diff))
   # #return t by 1 matrix, thus delta is a t by p matrix
 }
+
 
 ### Run the RATE Function ###
 rate_choice = "RATE MC"

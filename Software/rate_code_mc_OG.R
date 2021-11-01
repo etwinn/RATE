@@ -1,9 +1,7 @@
-# THIS IS MARYCLARE'S CODE FOR STUFF, LOOK THROUGH AND MAKE IT WORK.
-# Now renaming it ePlay
-# Emily is modifying on Oct 19 2021.
-# rate_code_mc.R
+# RATE_MC_Test.R
 # Same as the tutorial but with added sampling to get the g value as needed for
 # running MaryClare's suggestion for RATE.
+# September 7, 2021
 
 
 ### Clear Environment ###
@@ -20,18 +18,18 @@ library(RcppArmadillo)
 library(RcppParallel)
 
 ### Load in the RATE R functions ### (Path set by user in both)
-source("C:/Users/etwin/git_repos/RATE/Software/RATE2.R") #Changing path for etwin PC.
+source("~/Dropbox/Research/Crawford/RATE2.R") #Changing path for etwin PC.
 
 ### Load in the C++ BAKR functions ###
-sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
+# sourceCpp("~/Dropbox/Research/Crawford/BAKRGibbs.cpp")
 
 # Data simulation - want 10 variables, 3 pairwise interactions. Using Lorin's code from 
 # Centrality_Tutorial.R with some changes to make it our scale. Still going to use Gaussian process.
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2000 # 2000; 
-p = 25; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
+n = 200 # 2000; 
+p = 10; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
 
 ### Define the Number of Causal SNPs
 ncausal = 3
@@ -41,7 +39,7 @@ maf <- 0.05 + 0.45*runif(p)
 X   <- (runif(n*p) < maf) + (runif(n*p) < maf)
 X   <- matrix(as.double(X),n,p,byrow = TRUE)
 #Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
-s=c(23:25)
+s=c(8:10)
 
 #Marginal Effects Only
 Xmarginal=X[,s]
@@ -68,7 +66,7 @@ colnames(X) = paste("SNP",1:ncol(X),sep="")
 ######################################################################################
 ######################################################################################
 
-### Running the Bayesian Gaussian Process (GP) Regression Model, sampling for delta_j = (g(j)-f) ###
+### Running the Bayesian Gaussian Process (GP) Regression Model ###
 
 ### Create the Nonlinear Covariance Matrix with the Gaussian Kernel ###
 #This function takes on two arguments:
@@ -76,42 +74,93 @@ colnames(X) = paste("SNP",1:ncol(X),sep="")
 #are the rows and subjects/patients/cell lines are the columns.
 #(2) The bandwidth (also known as a smoothing parameter or lengthscale) h. For example, the 
 #Gaussian kernel can be specified as k(u,v) = exp{||uâv||^2/2h^2}.
-#Same with cokernel for the other matrices.
+
+### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
+# Kn = GaussKernel(t(X)); diag(Kn)=1 # 
+h <- 1
+B <- matrix(nrow = n, ncol = n)
+for (i in 1:n) {
+  cat("i=", i, "\n")
+  for (j in 1:n) {
+    B[i, j] <- exp(-h/(p)*sum((X[i, ]-X[j, ])^2))
+  }
+}
+
+### Center and Scale K_tilde ###
+# v=matrix(1, n, 1)
+# M=diag(n)-v%*%t(v)/n
+# Kn=M%*%Kn%*%M
+# Kn=Kn/mean(diag(Kn))
 
 ### Gibbs Sampler ###
 sample_size=100 # 1e4
 sigma2 = 1e-3
-
-### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-B = GaussKernel(t(X)); diag(B)=1
-A <- B + sigma2*diag(1,nrow=n,ncol=n)
-Ainv <- nearPD(solve(A))$mat
-Aiy <- Ainv%*%y
+A <- B + sigma2*diag(1, nrow = n, ncol = n)
+Aiy <- solve(A, y)
 BAiy <- B %*% Aiy
-IAiB <- (diag(1,nrow=n, ncol=n)-Ainv%*%B)
-BIAiB <- B%*%IAiB
+BAiB <- B %*% solve(A, B)
+BmBAiB <- B - BAiB
+# fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
+ef <- BAiy
+fhat.rep = rmvnorm(sample_size,BAiy,BmBAiB)
 
 ### Find basis and kernel matrix, center and scale, Gibbs Sampler for g ###
 cores = detectCores()
 registerDoParallel(cores=cores)
 
 #Calculate Delta, which ends up being p x sample_size matrix (add dopar instead of do once off windows)
+# f is sample_size x n matrix.... how solve this...
+#Need to figure out list for this.
 
 #delta = foreach(j = 1:p, .combine='rbind')%do%{
-delta = matrix(0,nrow=n, ncol=p) #nrow=sample_size
+#g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
+delta = matrix(0,nrow=sample_size, ncol=p)
 for(k in 1:p){
+  cat("k=", k, "\n")
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
   new_X = X 
-  new_X[,k] <- new_X[,k]+2
+  new_X[,k] <- new_X[, k]+1
   # MCG: Need to be careful here - the predictor only takes on values 0-2, may want to be careful
-  Cj = GaussCoKernel(t(X), t(new_X))
-  
+  # Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
+  Cj <- Dj <- matrix(nrow = n, ncol = n)
+  for (i in 1:n) {
+    # cat("i=", i, "\n")B_
+    for (j in 1:n) {
+      Dj[i, j] <- exp(-h/(p)*sum((new_X[i, ]-new_X[j, ])^2))
+      Cj[i, j] <- exp(-h/(p)*sum((X[i, ]-new_X[j, ])^2))
+    }
+  }
+  diag(Cj)=1 #line added by Emily
   CtAiy <- t(Cj) %*% Aiy
-  AiC <- Ainv%*%Cj
-  del_cov = nearPD(+IAiB-t(Cj)%*%(AiC +2*IAiB))
+  CtAiC <- t(Cj) %*% solve(A, Cj)
+  CtAiB <- t(Cj) %*% solve(A, B)
+  BAiC <- B %*% solve(A, Cj)
+  DmCtAiC <- Dj - CtAiC
+  CtmCtAiB <- t(Cj) - CtAiB
+  CmBAiC <- Cj - BAiC
+  # fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
+  eg <- CtAiy
+  fghat.rep = rmvnorm(sample_size,c(BAiy, CtAiy),
+                      rbind(cbind(BmBAiB, CmBAiC),
+                            cbind(CtmCtAiB, DmCtAiC)))
+  del <- t(apply(fghat.rep, 1, function(fg) {
+    fg[length(fg)/2 + 1:(length(fg)/2)] - fg[1:(length(fg)/2)]
+  }))
+  delta[, k] <- rowMeans(del)
   
-  del = rmvnorm(sample_size, BAiy-CtAiy, as.matrix(del_cov$mat))
-  delta[, k] <- colMeans(del)
+  # ### Center and Scale K_tilde ###
+  v=matrix(1, n, 1)
+  M=diag(n)-v%*%t(v)/n
+  # # Kn_g=M%*%Kn_g%*%M
+  # # Kn_g=Kn_g/mean(diag(Kn_g))
+  # #g #Don't need to sample, just get the expected value.
+  # g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
+  # #g.rep is a 10000 by 2000 matrix
+  # g.rep = rmvnorm(sample_size,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
+  # diff <- g.rep-fhat.rep
+  # # this is a t by n matrix (t is number of draws), average over n
+  # delta[,j] = t(rowMeans(diff))
+  # #return t by 1 matrix, thus delta is a t by p matrix
 }
 
 ### Run the RATE Function ###
