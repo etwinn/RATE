@@ -89,9 +89,11 @@ B = GaussKernel(t(X)); diag(B)=1 #
 sample_size=100 # 1e4
 sigma2 = 1e-3
 A <- B + sigma2*diag(1, nrow = n, ncol = n)
-Aiy <- solve(A, y)
+A_svd <- svd(A)
+Ainv = nearPD(t(A_svd$u)%*%diag(1/A_svd$d, nrow=n, ncol=n)%*%A_svd$v)$mat
+Aiy <- Ainv%*%y
 BAiy <- B %*% Aiy
-BAiB <- B %*% solve(A, B)
+BAiB <- B %*% Ainv%*%B
 BmBAiB <- B - BAiB
 # fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
 ef <- BAiy
@@ -109,7 +111,6 @@ registerDoParallel(cores=cores)
 #g = matrix(0,2000,25) #fhat 1 by 2000, g_j is 1 by 2000... but fhat rep is 10000 by 2000
 delta = matrix(0,nrow=sample_size, ncol=p)
 for(k in 1:p){
-  cat("k=", k, "\n")
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
   new_X = X 
   new_X[,k] <- new_X[, k]+1
