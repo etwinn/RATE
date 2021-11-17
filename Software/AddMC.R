@@ -16,7 +16,7 @@ library(MASS)
 library(corpcor)
 library(varbvs)
 library(glmnet)
-library(gdmp)
+#library(gdmp)
 library(BGLR)
 library(svd)
 
@@ -26,6 +26,7 @@ source("RATE2.R")
 ### Load in the C++ BAKR functions ###
 sourceCpp("BAKRGibbs.cpp")
 
+cat("RATE and BAKR locked and loaded. \n")
 ### Define the Compute Power Function ###
 compute.power <- function(pvals,SNPs){
   nsnps = length(pvals)
@@ -54,30 +55,25 @@ compute.power <- function(pvals,SNPs){
 set.seed(11151990)
 
 ### Set the Results Directory ###
-setwd("/home/lcrawfo1/Results/KLD/")
 fn = "AddMC"
 
 n.datasets = 100
 
 ### Load in the Genotypes ###
 load("~/data/ewinn/WTCCC_Sub.RData")
+#load("C:/Users/etwin/Downloads/WTCCC_Sub.RData")
 unique.snps = apply(X.select,1,function(x) length(unique(x)))
 X.select = X.select[unique.snps>1,]
 maf=apply(X.select, 1, mean)/2
 X = t(X.select[maf>0.05,]);
 Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
 ind = dim(X)[1]; nsnp = dim(X)[2]
-
+cat("data locked and loaded \n")
 ### Compute the Top PCs ###
 PCs = ComputePCs(X,10)
 
 ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-Kn = GaussKernel(t(X)); diag(Kn) = 1
-
-v=matrix(1, ind, 1)
-M=diag(ind)-v%*%t(v)/ind
-Kn=M%*%Kn%*%M
-Kn=Kn/mean(diag(Kn))
+B = GaussKernel(t(X)); diag(B) = 1
 
 # simulation parameters
 pve=0.3; rho=1; pc.var = 0; ncausal = 30
@@ -87,11 +83,13 @@ ncausal2 = ncausal-ncausal1 #Set 2 of Causal SNPs
 ######################################################################################
 ######################################################################################
 ######################################################################################
-
+cat("Entering for loop \n")
 ### Set the Saving Mechanisms ###
 Final = list();
-
+cores = detectCores()
+registerDoParallel(cores=cores)
 for(o in 1:n.datasets){
+  start = Sys.time()
   s=sample(1:nsnp,ncausal,replace = FALSE)
   
   #Select Causal SNPs
@@ -146,39 +144,25 @@ for(o in 1:n.datasets){
   
   ### Gibbs Sampler ###
   sigma2 = 1e-3
-  fhat = Kn %*% solve(Kn + diag(sigma2,n), y)
-  fhat.rep = rmvnorm(5e3,fhat,Kn - Kn %*% solve(Kn+diag(sigma2,n),Kn))
+  sample_size = 5e3
+  fhat = B %*% solve(B + diag(sigma2,n), y)
+  fhat.rep = mvrnormArma(sample_size,fhat,B - B %*% solve(B+diag(sigma2,n),B))
   
   ### Calculate Delta ###
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-  B = GaussKernel(t(X)); diag(B)=1
-  A <- B + sigma2*diag(1,nrow=n,ncol=n)
+  A <- B + diag(sigma2,nrow=n,ncol=n)
   A_svd <- propack.svd(A)
   Ainv = nearPD(A_svd$v%*%diag(1/A_svd$d, nrow=n, ncol=n)%*%t(A_svd$u))$mat
   #Ainv = nearPD(solve(A))$mat
   Aiy <- Ainv%*%y
   BAiy <- B %*% Aiy
-  IAiB <- (diag(1,nrow=n, ncol=n)-Ainv%*%B)
-  BIAiB <- B%*%IAiB
+  #IAiB <- (diag(1,nrow=n, ncol=n)-Ainv%*%B)
+  #BIAiB <- B%*%IAiB
 
   #Calculate Delta, which ends up being p x sample_size matrix (add dopar instead of do once off windows)
-  
-  delta = foreach(k = 1:p, .combine='cbind', .packages=c("Rcpp", "RcppArmadillo"), .noexport=c("GaussKernel","GaussCoKernel", "mvrnormArma"))%dopar%{
-    sourceCpp("RateParFunc.cpp")
-    new_X = X 
-    new_X[,k] <- new_X[,k]+1
-    # MCG: Need to be careful here - the predictor only takes on values 0-2, may want to be careful
-    Cj = GaussCoKernel(t(X), t(new_X))
-    
-    CtAiy <- t(Cj) %*% Aiy
-    AiC <- Ainv%*%Cj
-    del_cov = nearPD(B+BIAiB-t(Cj)%*%(AiC +2*IAiB))
-    
-    del = mvrnormArma(sample_size, as.matrix(BAiy-CtAiy), as.matrix(del_cov$mat))
-    delt = as.matrix(colMeans(del))
-    delt
-  }
-  delta=as.matrix(delta)
+  cat("Calculating delta \n")
+  delta = ComputeESA(as.matrix(X), as.vector(Aiy), as.vector(BAiy))
+  cat("Calculated delta! \n")
   
   ### Run the RATE_MC function ###
   ptm <- proc.time() #Start clock
@@ -191,7 +175,7 @@ for(o in 1:n.datasets){
   ######################################################################################
   
   ### Run the RATE Function ###
-  res = RATE(X=X,f.draws=fhat.rep,rank.r=n/4,snp.nms = colnames(X),cores = cores)
+  res = RATE(X=X,f.draws=fhat.rep,rank.r=n,snp.nms = colnames(X),cores = cores)
   rates = res$RATE
   
   ### LASSO ###
@@ -236,6 +220,7 @@ for(o in 1:n.datasets){
   
   ### Report Status ###
   cat("Completed Dataset", o, "\n", sep = " ")
+  cat(Sys.time()-start)
 }
 
 ### Save the Results ###
