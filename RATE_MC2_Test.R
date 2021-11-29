@@ -31,7 +31,7 @@ sourceCpp("C:/Users/etwin/git_repos/BAKR-master/BAKR-master/Rcpp/BAKRGibbs.cpp")
 ### Set the random seed to reproduce research ###
 set.seed(11151990)
 
-n = 2000; p = 10; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
+n = 200; p = 10; pve=0.6; rho=0.7; #rho=0 makes all epistatic, 1 is all marginal
 sample_size=1e4
 sigma2 = 1e-3
 
@@ -87,27 +87,28 @@ registerDoParallel(cores=cores)
 # f is sample_size x n matrix.... how solve this...
 #Need to figure out list for this.
 
+delta = 
 #delta = foreach(j = 1:p, .combine='rbind')%do%{
-delta = matrix(0,nrow=sample_size, ncol=p)
-for(j in 1:p){
+#delta = matrix(0,nrow=sample_size, ncol=p)
+#for(j in 1:p){
   ### Find the Approximate Basis and Kernel Matrix; Choose N <= D <= P ###
-  new_X = X
-  new_X[,j] = new_X[,j]+1
-  Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
+ # new_X = X
+#  new_X[,j] = new_X[,j]+1
+#  Kn_g = GaussKernel(t(new_X)); diag(Kn_g)=1 # 
   
   ### Center and Scale K_tilde ###
-  v=matrix(1, n, 1)
-  M=diag(n)-v%*%t(v)/n
-  Kn_g=M%*%Kn_g%*%M
-  Kn_g=Kn_g/mean(diag(Kn_g))
+#  v=matrix(1, n, 1)
+#  M=diag(n)-v%*%t(v)/n
+#  Kn_g=M%*%Kn_g%*%M
+#  Kn_g=Kn_g/mean(diag(Kn_g))
   #g #Don't need to sample, just get the expected value.
-  g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
+#  g = Kn_g %*% solve(Kn_g + diag(sigma2,n), y)
   #g.rep is a 10000 by 2000 matrix
-  g.rep = rmvnorm(sample_size,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
+#  g.rep = rmvnorm(sample_size,g,Kn_g - Kn_g %*% solve(Kn_g+diag(sigma2,n),Kn_g))
   # this is a t by n matrix (t is number of draws), average over n
-  delta[,j] = t(rowMeans(g.rep))
+ # delta[,j] = t(rowMeans(g.rep))
   #return t by 1 matrix, thus delta is a t by p matrix
-}
+#}
 
 ### Run the RATE Function ###
 rate_choice = "RATE MC"

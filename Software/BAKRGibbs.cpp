@@ -238,16 +238,13 @@ arma::mat GaussKernel(arma::mat X, double h = 1){
     double p = X.n_rows;
     mat K = zeros<mat>(n,n);
     for (i = 0; i<n; i++){
-        for(j = 0; j<n; j++){
-            if(i==j){
-                break;
-            }
-            else{
-                K(i,j) = exp(-h/(p)*sum(pow(X.col(i)-X.col(j),2)));
-            }
+        for(j = 0; j<i; j++){
+            K(i,j) = exp(-h/(p)*sum(pow(X.col(i)-X.col(j),2)));
         }
     }
-    return K + trans(K);
+    K = K + trans(K);
+    K.diag().ones();
+    return K;
 }
 
 // [[Rcpp::export]]
@@ -255,15 +252,14 @@ arma::mat GaussCoKernel(arma::mat X, arma::mat Y, double h = 1){
     int i,j;
     double n = X.n_cols;
     double p = X.n_rows;
-	if (Y.n_cols != n || Y.n_rows != p) {
-		throw std::invalid_argument( "Dimensions of matrices don't match.");
-	}
     mat K = zeros<mat>(n,n);
     for (i = 0; i<n; i++){
-        for(j = 0; j<n; j++){
+        for(j = 0; j<i; j++){
             K(i,j) = exp(-h/(p)*sum(pow(X.col(i)-Y.col(j),2)));
         }
     }
+    K = K + trans(K);
+    K.diag().fill(exp(-h/p));
     return K;
 }
 
@@ -350,6 +346,31 @@ mat ComputeESA(arma::mat X,arma::vec Aiy, arma::vec BAiy){
         delta.col(i) = BAiy - CtAiy;
     }
     return delta;
+}
+
+// [[Rcpp::export]]
+mat ComputeESAFast(arma::mat X,arma::mat B, arma::vec Aiy, arma::vec BAiy, double h = 1){
+    int i;
+    const int n = X.n_rows;
+    const int p = X.n_cols;
+    vec onevec = ones(n);
+    mat delta = zeros(n,p);
+    
+    for(i=0; i<p; i++){
+        mat Cj = B%exp(-(h/p)*(1-2*symmatl(X.col(i)*trans(onevec)-onevec*trans(X.col(i)))));
+        vec CtAiy = Cj*Aiy;
+        delta.col(i) = BAiy - CtAiy;
+    }
+    return delta;
+}
+
+// [[Rcpp::export]]
+mat ComputeKFast(arma::mat X,arma::mat B, int j, double h = 1){
+    const int n = X.n_rows;
+    const int p = X.n_cols;
+    vec onevec = ones(n);
+    mat Cj = B%exp(-(h/p)*(1-2*symmatl(X.col(j)*trans(onevec)-onevec*trans(X.col(j)))));
+    return Cj;
 }
 
 //================================================================================================
