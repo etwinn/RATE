@@ -349,13 +349,14 @@ mat ComputeESA(arma::mat X,arma::vec Aiy, arma::vec BAiy){
 }
 
 // [[Rcpp::export]]
-mat ComputeESAFast(arma::mat X,arma::mat B, arma::vec Aiy, arma::vec BAiy, double h = 1){
+mat ComputeESAFast(arma::mat X,arma::mat B, arma::vec Aiy, arma::vec BAiy, double h = 1, int cores=1){
     int i;
     const int n = X.n_rows;
     const int p = X.n_cols;
     vec onevec = ones(n);
     mat delta = zeros(n,p);
-    
+    omp_set_num_threads(cores);
+#pragma omp parallel for schedule(dynamic)
     for(i=0; i<p; i++){
         mat Cj = B%exp(-(h/p)*(1-2*symmatl(X.col(i)*trans(onevec)-onevec*trans(X.col(i)))));
         vec CtAiy = Cj*Aiy;

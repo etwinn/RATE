@@ -30,7 +30,7 @@ RATE = function(X = X, f.draws = f.draws,prop.var = 1, low.rank = FALSE, rank.r 
   }
   
   ### Register those Cores ###
-  #registerDoParallel(cores=cores)
+  registerDoParallel(cores=cores)
   
   ### First Run the Matrix Factorizations ###  
   svd_X = propack.svd(X,rank.r); 
