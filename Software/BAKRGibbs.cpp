@@ -238,13 +238,16 @@ arma::mat GaussKernel(arma::mat X, double h = 1){
     double p = X.n_rows;
     mat K = zeros<mat>(n,n);
     for (i = 0; i<n; i++){
-        for(j = 0; j<i; j++){
-            K(i,j) = exp(-h/(p)*sum(pow(X.col(i)-X.col(j),2)));
+        for(j = 0; j<n; j++){
+            if(i==j){
+                break;
+            }
+            else{
+                K(i,j) = exp(-h/(p)*sum(pow(X.col(i)-X.col(j),2)));
+            }
         }
     }
-    K = K + trans(K);
-    K.diag().ones();
-    return K;
+    return K + trans(K);
 }
 
 // [[Rcpp::export]]
@@ -254,12 +257,22 @@ arma::mat GaussCoKernel(arma::mat X, arma::mat Y, double h = 1){
     double p = X.n_rows;
     mat K = zeros<mat>(n,n);
     for (i = 0; i<n; i++){
-        for(j = 0; j<i; j++){
+        for(j = 0; j<n; j++){
             K(i,j) = exp(-h/(p)*sum(pow(X.col(i)-Y.col(j),2)));
         }
     }
-    K = K + trans(K);
-    K.diag().fill(exp(-h/p));
+    return K;
+}
+
+// [[Rcpp::export]]
+arma::mat GaussCoKernelFast(arma::mat X, arma::mat B, double h = 1){
+    int i; /*j;*/
+	i = 0;
+    double p = X.n_cols;
+    double n = X.n_rows;
+	vec onevec = ones(n);
+    mat K = zeros<mat>(n,n);
+	K = B%exp(-(h/p)*(1-2*(X.col(i)*trans(onevec)-onevec*trans(X.col(i)))));
     return K;
 }
 
@@ -342,7 +355,7 @@ mat ComputeESA(arma::mat X,arma::vec Aiy, arma::vec BAiy){
         X_new.col(i) = X_new.col(i)+1;
         
         mat Cj = GaussCoKernel(trans(X),trans(X_new));
-        vec CtAiy = Cj*Aiy;
+        vec CtAiy = trans(Cj)*Aiy;
         delta.col(i) = BAiy - CtAiy;
     }
     return delta;
@@ -358,8 +371,8 @@ mat ComputeESAFast(arma::mat X,arma::mat B, arma::vec Aiy, arma::vec BAiy, doubl
     omp_set_num_threads(cores);
 #pragma omp parallel for schedule(dynamic)
     for(i=0; i<p; i++){
-        mat Cj = B%exp(-(h/p)*(1-2*symmatl(X.col(i)*trans(onevec)-onevec*trans(X.col(i)))));
-        vec CtAiy = Cj*Aiy;
+        mat Cj = B%exp(-(h/p)*(1-2*(X.col(i)*trans(onevec)-onevec*trans(X.col(i)))));
+        vec CtAiy = trans(Cj)*Aiy;
         delta.col(i) = BAiy - CtAiy;
     }
     return delta;
@@ -651,3 +664,4 @@ NumericVector BAKRProbitPredict(NumericMatrix X_new, NumericVector beta){
     NumericVector pred = Rcpp::pnorm(transpose(X_new)*beta,0.0,1.0,1,0);
     return pred;
 }
+

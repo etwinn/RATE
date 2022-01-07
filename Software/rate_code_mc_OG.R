@@ -38,7 +38,7 @@ ncausal = 3
 maf <- 0.05 + 0.45*runif(p)
 X   <- (runif(n*p) < maf) + (runif(n*p) < maf)
 X   <- matrix(as.double(X),n,p,byrow = TRUE)
-#Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
+Xmean=apply(X, 2, mean); Xsd=apply(X, 2, sd); X=t((t(X)-Xmean)/Xsd)
 s=c(8:10)
 
 #Marginal Effects Only
@@ -130,7 +130,7 @@ for(k in 1:p){
       Cj[i, j] <- exp(-h/(p)*sum((X[i, ]-new_X[j, ])^2))
     }
   }
-  diag(Cj)=1 #line added by Emily
+  diag(Cj)=exp(-h/p) #line added by Emily
   CtAiy <- t(Cj) %*% Aiy
   CtAiC <- t(Cj) %*% solve(A, Cj)
   CtAiB <- t(Cj) %*% solve(A, B)

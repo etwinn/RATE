@@ -45,10 +45,10 @@ registerDoParallel(cores=cores)
 ```
 
 ```{r, echo = FALSE}
-load('Y:/scratch/data/RATE_MA_same_noXMean.Rdata')
-load('Y:/scratch/data/RATE_MA_diff_noXMean.Rdata')
-load('Y:/scratch/data/RATE_interaction.Rdata')
-load('Y:/scratch/data/RATE_MA_overlap_noXMean.Rdata')
+load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_MA_same_ESAfast.Rdata')
+load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_MA_diff_ESAfast.Rdata')
+load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_interaction_ESAfast.Rdata')
+load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_MA_overlap_ESAfast.Rdata')
 ```
 
 # Data Plots
