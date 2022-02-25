@@ -45,10 +45,10 @@ registerDoParallel(cores=cores)
 ```
 
 ```{r, echo = FALSE}
-load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_MA_same_ESAfast.Rdata')
-load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_MA_diff_ESAfast.Rdata')
-load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_interaction_ESAfast.Rdata')
-load('Y:/data/ewinn/RATEMC/RateSimExpReplicate/RATE_MA_overlap_ESAfast.Rdata')
+load('X:/RATEMC/RateSimExpReplicate/RATE_MA_same_ESAfastPar.Rdata')
+load('X:/RATEMC/RateSimExpReplicate/RATE_MA_diff_ESAfastPar.Rdata')
+load('X:/RATEMC/RateSimExpReplicate/RATE_interaction_ESAfastPar.Rdata')
+load('X:/RATEMC/RateSimExpReplicate/RATE_MA_overlap_ESAfastPar.Rdata')
 ```
 
 # Data Plots
@@ -111,31 +111,43 @@ p_interact <- INTERACT_OG_ESdf %>% select(snps) %>%
   pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
 
 OGsame <- ggplot() + 
-  geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
+  geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8, color="orange") +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE OG Effect Sizes (same)")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Linear RATEs (same)")+
+  geom_hline(yintercept=1/25, linetype="dashed",color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
   ylim(0,0.9)
 
 OGdiff <- ggplot() +
-  geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
+  geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8, color="orange") +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE OG Effect Sizes (diff)")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Linear RATEs (diff)")+
+  geom_hline(yintercept=1/25, linetype="dashed", color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
   ylim(0,0.9)
   
 OGoverlap <- ggplot() + 
-    geom_count(data=p_overlap, aes(x=SNPS,y=RATES),  alpha=0.8) +
-    scale_x_discrete(limits=snps) + 
-    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-    ggtitle("RATE OG Effect Sizes (overlap)")+
+    geom_count(data=p_overlap, aes(x=SNPS,y=RATES),  alpha=0.8, color="orange") +
+    scale_x_discrete(limits=snps) +
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+    ggtitle("GP Linear RATEs (overlap)")+
+    geom_hline(yintercept=1/25, linetype="dashed", color="red",size=2)+
+    theme_bw()+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
     ylim(0,0.9)
 
 OGinteract <- ggplot() + 
-    geom_count(data=p_interact, aes(x=SNPS,y=RATES),  alpha=0.8) +
+    geom_count(data=p_interact, aes(x=SNPS,y=RATES),  alpha=0.8, color="orange") +
     scale_x_discrete(limits=snps) + 
-    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-    ggtitle("RATE OG Effect Sizes (interact)") +
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+    ggtitle("GP Linear RATEs (interact)") +
+    geom_hline(yintercept=1/25, linetype="dashed", color="red",size=2)+
+    theme_bw()+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
     ylim(0,0.9)
 
 #plot the quad 
@@ -155,28 +167,29 @@ p_interact <- INTERACT_quad_ESdf %>% select(snps) %>%
 Quadsame <- ggplot() + 
   geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
   ggtitle("RATE Quad Effect Sizes (same)")+
   ylim(0,0.9)
 
 Quaddiff <- ggplot()+
   geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
   ggtitle("RATE Quad Effect Sizes (diff)")+
   ylim(0,0.9)
 
 Quadoverlap <- ggplot()+
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
   ggtitle("RATE Quad Effect Sizes (overlap)")+
+  geom_hline(yintercept=1/25, linetype="dashed")+
   ylim(0,0.9)
 
 Quadinteract <- ggplot()+
   geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
   ggtitle("RATE Quad Effect Sizes (interact)")+
   ylim(0,0.9)
 
@@ -282,47 +295,210 @@ p_interact <- INTERACT_MC_ESdf %>% select(snps) %>%
 MCsame <- ggplot() + 
   geom_count(data=p_same, aes(x=SNPS, y = RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (same)")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (same)")+
+  geom_hline(yintercept=1/25, linetype="dashed",color="red",size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
   ylim(0,0.9)
 
 MCdiff <- ggplot() + 
   geom_count(data=p_diff, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (diff)")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (diff)")+
+  geom_hline(yintercept=1/25, linetype="dashed", color="red",size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
   ylim(0,0.9)
 
 MCoverlap <- ggplot() + 
   geom_count(data=p_overlap, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (overlap)")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (overlap)")+
+  geom_hline(yintercept=1/25, linetype="dashed",color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
   ylim(0,0.9)
 
 MCinteract <- ggplot() + 
   geom_count(data=p_interact, aes(x=SNPS,y=RATES), alpha=0.8) +
   scale_x_discrete(limits=snps) + 
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="right") +
-  ggtitle("RATE MC Effect Sizes (interact)")+
+  #theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (interact)")+
+  geom_hline(yintercept=1/25, linetype="dashed", color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none")+
   ylim(0,0.9)
 
 
 #Combine all plots below in 2 x 3 matrix
-grid.arrange(OGsame, OGdiff, OGoverlap, OGinteract, Quadsame, Quaddiff, Quadoverlap, Quadinteract, Quad2same, Quad2diff, Quad2overlap, Quad2interact, Combosame, Combodiff, Combooverlap, Combointeract, MCsame, MCdiff, MCoverlap, MCinteract, nrow=5)
-#grid.arrange(OGsame, OGdiff, OGoverlap, Quadsame, Quaddiff, Quadoverlap, Quad2same, Quad2diff, Quad2overlap, Combosame, Combodiff, Combooverlap, MCsame, MCdiff, MCoverlap, nrow=5)
+#grid.arrange(OGsame, OGdiff, OGoverlap, OGinteract, Quadsame, Quaddiff, Quadoverlap, Quadinteract, Quad2same, Quad2diff, Quad2overlap, Quad2interact, Combosame, Combodiff, Combooverlap, Combointeract, MCsame, MCdiff, MCoverlap, MCinteract, nrow=5)
+grid.arrange(OGsame, MCsame, OGdiff, MCdiff, OGoverlap, MCoverlap, OGinteract, MCinteract, nrow=4)
+```
+```{r, echo = FALSE, plot=TRUE, fig.height=15, fig.width=20}
+
+p_same <- SAME_OG_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_diff <- DIFF_OG_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_overlap <- OVERLAP_OG_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_interact <- INTERACT_OG_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+OGsame <- ggplot() + 
+  geom_point(data=p_same, aes(x=SNPS, y = RATES, size=2),  color=same_scale) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Linear RATEs (same)")+
+  geom_hline(yintercept=1/25, linetype="dashed",color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+  ylim(0,0.9)
+
+OGdiff <- ggplot() +
+  geom_point(data=p_diff, aes(x=SNPS, y = RATES, size=2),  color=diff_scale) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Linear RATEs (diff)")+
+  geom_hline(yintercept=1/25, linetype="dashed", color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+  ylim(0,0.9)
+  
+OGoverlap <- ggplot() + 
+    geom_point(data=p_overlap, aes(x=SNPS, y = RATES, size=2),  color=overlap_scale) +
+    scale_x_discrete(limits=snps) +
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+    ggtitle("GP Linear RATEs (overlap)")+
+    geom_hline(yintercept=1/25, linetype="dashed", color="red",size=2)+
+    theme_bw()+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+    ylim(0,0.9)
+
+OGinteract <- ggplot() + 
+    geom_point(data=p_interact, aes(x=SNPS, y = RATES, size=2),  color=diff_scale) +
+    scale_x_discrete(limits=snps) + 
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+    ggtitle("GP Linear RATEs (interact)") +
+    geom_hline(yintercept=1/25, linetype="dashed", color="red",size=2)+
+    theme_bw()+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+    ylim(0,0.9)
+
+#plot the MC
+
+p_same <- SAME_MC_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_diff <- DIFF_MC_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_overlap <- OVERLAP_MC_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+p_interact <- INTERACT_MC_ESdf %>% select(snps) %>%
+  pivot_longer(., cols = snps, names_to="SNPS", values_to = "RATES")
+
+MCsame <- ggplot() + 
+  geom_point(data=p_same, aes(x=SNPS, y = RATES, size=2),  color=same_scale) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (same)")+
+  geom_hline(yintercept=1/25, linetype="dashed",color="red",size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+  ylim(0,0.9)
+
+MCdiff <- ggplot() + 
+  geom_point(data=p_diff, aes(x=SNPS, y = RATES, size=2),  color=diff_scale) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (diff)")+
+  geom_hline(yintercept=1/25, linetype="dashed", color="red",size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+  ylim(0,0.9)
+
+MCoverlap <- ggplot() + 
+  geom_point(data=p_overlap, aes(x=SNPS, y = RATES, size=2),  color=overlap_scale) +
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (overlap)")+
+  geom_hline(yintercept=1/25, linetype="dashed",color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+  ylim(0,0.9)
+
+MCinteract <- ggplot() + 
+  geom_point(data=p_interact, aes(x=SNPS, y = RATES, size=2),  color=diff_scale) +
+  scale_x_discrete(limits=snps) + 
+  #theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Nonlinear RATEs (interact)")+
+  geom_hline(yintercept=1/25, linetype="dashed", color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+  ylim(0,0.9)
+
+
+#Combine all plots below in 2 x 3 matrix
+#grid.arrange(OGsame, OGdiff, OGoverlap, OGinteract, Quadsame, Quaddiff, Quadoverlap, Quadinteract, Quad2same, Quad2diff, Quad2overlap, Quad2interact, Combosame, Combodiff, Combooverlap, Combointeract, MCsame, MCdiff, MCoverlap, MCinteract, nrow=5)
+grid.arrange(OGsame, MCsame, OGdiff, MCdiff, OGoverlap, MCoverlap, OGinteract, MCinteract, nrow=4, top=textGrob("RATE Data for Linear and Nonlinear Gaussian Processes Under Simulation Scenarios", gp=gpar(fontsize=24)))
+```
+
+```{r}
+ggplot() + 
+  geom_point(data=p_same, aes(x=SNPS, y = RATES, size=2), color=same_scale) +
+  #scale_fill_manual(values = same_scale)+
+  scale_x_discrete(limits=snps) + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5), legend.position="none") +
+  ggtitle("GP Linear RATEs (same)")+
+  geom_hline(yintercept=1/25, linetype="dashed",color="red", size=2)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none", axis.text.x=element_blank())+
+  #scale_color_manual(values = c("SNP23"="blue", "SNP24"="blue", "SNP25"="blue"))+          
+  ylim(0,0.9)
 ```
 ## ROC's of RATE Values (plotted)
 
 Here I will plot various ROC curves
 
+```{r, echo=FALSE}
+p_focus <- p_interact
+snps_focus <- diff_snps
+powers <- rep(0,100)
+fdr <- rep(0,100)
+for (i in 1:100){
+  sig.rates <- p_focus[((i-1)*25+1):(i*25),] %>%filter(RATES>1/25)
+  powers[i] = sum(sig.rates$SNPS%in%snps_focus)/length(snps_focus)
+  fdr[i]=sum(sig.rates$SNPS%!in%snps_focus)/length(snps_focus)
+}
+mean(powers)
+sd(powers)
+mean(fdr)
+sd(fdr)
+```
+
+```{r, echo=FALSE}
+'%!in%' <- function(x,y)!('%in%'(x,y))
+fdr <- rep(0,100)
+for (i in 1:100){
+  fdr[i]=sum(sig.rates$SNPS%!in%snps_focus)/length(snps_focus)
+}
+
+```
 ### Same
 
 ```{r, echo=FALSE}
 same_snps = snps[23:25]
 diff_snps = c(snps[8:10], snps[23:25])
 interact_snps = diff_snps
-overlap_snps = c(snps[8:9], snps[23:25])
+overlap_snps = c(snps[8:10], snps[23:25])
 
 ### Define the Compute Power Function ###
 compute.power <- function(pvals,SNPs){
@@ -383,16 +559,18 @@ PP = cbind(power.sameOG, power.sameQuad, power.sameQuad2, power.sameCombo, power
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", main="Same", ylim = c(0,1),xlim = c(0,1),bty = "n")
-lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
-lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
-lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
-lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
-legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
-abline(a=0, b=1,col="black",lwd = 2)
+same_pp = plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "orange3", xlab = "False Positive Rate",ylab = "True Positive Rate", main="Power Curve (Same)", ylim = c(0,1),xlim = c(0,1),bty = "n")
+#lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+#lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+#lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "blue")
+#legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+#abline(a=0, b=1,col="black",lwd = 2)
 #dev.off()
 
 ```
+
+
 ### Different
 
 ROC for different (marginal effects from snps 23, 24, 25, and interactions between 8 and 10 and 9 and 10).
@@ -431,13 +609,13 @@ PP = cbind(power.diffOG, power.diffQuad, power.diffQuad2, power.diffCombo, power
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", main="Different", ylim = c(0,1),xlim = c(0,1),bty = "n")
-lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
-lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
-lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
-lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
-legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
-abline(a=0, b=1,col="black",lwd = 2)
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "orange3", xlab = "False Positive Rate",ylab = "True Positive Rate", main="Power Curve (Different)", ylim = c(0,1),xlim = c(0,1),bty = "n")
+#lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+#lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+#lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "blue")
+#legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+#abline(a=0, b=1,col="black",lwd = 2)
 #dev.off()
 ```
 ### Overlap
@@ -479,13 +657,13 @@ PP = cbind(power.overlapOG, power.overlapQuad, power.overlapQuad2, power.overlap
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate",ylab = "True Positive Rate", main = "Overlap", ylim = c(0,1),xlim = c(0,1),bty = "n")
-lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
-lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
-lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
-lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
-legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
-abline(a=0, b=1,col="black",lwd = 2)
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "orange3", xlab = "False Positive Rate",ylab = "True Positive Rate", main = "Power Curve (Overlap)", ylim = c(0,1),xlim = c(0,1),bty = "n")
+#lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+#lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+#lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "blue")
+#legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+#abline(a=0, b=1,col="black",lwd = 2)
 #dev.off()
 
 ```
@@ -529,13 +707,13 @@ PP = cbind(power.interactOG, power.interactQuad, power.interactQuad2, power.inte
 auc = c(trapz(PP[,2],PP[,1]),trapz(PP[,5],PP[,4]),trapz(PP[,8],PP[,7]),trapz(PP[,11],PP[,10]),trapz(PP[,14],PP[,13]))
 m = paste(rate_types," (", format(round(auc,2),digits=2), ") ",sep = "")
 #
-plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "blue", xlab = "False Positive Rate", main="Interact", ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
-lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
-lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
-lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
-lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "orange3")
-legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
-abline(a=0, b=1,col="black",lwd = 2)
+plot(PP[,2],PP[,1],type = "l",lty = 1, lwd = 3, col = "orange3", xlab = "False Positive Rate", main="Power Curve (Interact)", ylab = "True Positive Rate", ylim = c(0,1),xlim = c(0,1),bty = "n")
+#lines(PP[,5],PP[,4],type = "l",lty = 4, lwd = 3, col = "magenta")
+#lines(PP[,8],PP[,7],type = "l",lty = 5, lwd = 3, col = "dark red")
+#lines(PP[,11],PP[,10],type = "l",lty = 6, lwd = 3, col = "forest green")
+lines(PP[,14],PP[,13],type = "l",lty = 2, lwd = 3, col = "blue")
+#legend("bottomright",legend = m, lty =c(1,4,5,6,2), lwd = c(2,2,2,2,2),col = c("blue","magenta","dark red","forest green","orange3"),bty = "n",title = expression(bold("Method (AUC):")),title.adj = 0.15)
+#abline(a=0, b=1,col="black",lwd = 2)
 #dev.off()
 
 ```
